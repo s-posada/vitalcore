@@ -254,7 +254,7 @@ def auth_session(data: UserSessionRequest, db: Session = Depends(get_db)):
         user = User(
             email=data.email.strip().lower(),
             name=data.name,
-            avatar_url=data.avatar_url or f"https://api.dicebear.com/7.x/avataaars/svg?seed={data.name}",
+            avatar_url=data.avatar_url or f"https://randomuser.me/api/portraits/{'men' if hash(data.name) % 2 == 0 else 'women'}/{abs(hash(data.name)) % 90 + 1}.jpg",
             is_admin=is_adm,
             tier=data.tier or ("pro" if is_adm else "inicial"),
             subscription_started_at=now,

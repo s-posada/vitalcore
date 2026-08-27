@@ -18,10 +18,10 @@ export default function LoginPage() {
   const TEAM_FOUNDERS = [
     { name: 'Sebastian Posada Posada', email: 'sposada2026@udec.cl', role: 'CEO & Co-Fundador', gender: 'male' as const },
     { name: 'Andres Gonzalo Burboa Lizama', email: 'andresburboa@udec.cl', role: 'CTO & Co-Fundador', gender: 'male' as const },
-    { name: 'Catalina Antonia Vergara Donoso', email: 'cavergara2019@udec.cl', role: 'Chief Health Officer', gender: 'female' as const },
-    { name: 'Fabian Alonso Alvarado Arriagada', email: 'falvarado2016@udec.cl', role: 'Head of AI', gender: 'male' as const },
-    { name: 'Marian Garcia Cruz', email: 'margarcia2026@udec.cl', role: 'Head of Product', gender: 'female' as const },
-    { name: 'Yenny Sanchez Aguilar', email: 'yesanchez2026@udec.cl', role: 'COO & Co-Fundadora', gender: 'female' as const },
+    { name: 'Catalina Antonia Vergara Donoso', email: 'cavergara2019@udec.cl', role: 'Chief Health Officer & Co-Fundadora', gender: 'female' as const },
+    { name: 'Fabian Alonso Alvarado Arriagada', email: 'falvarado2016@udec.cl', role: 'Head of AI & Co-Fundador', gender: 'male' as const },
+    { name: 'Marian Garcia Cruz', email: 'margarcia2026@udec.cl', role: 'Head of Product & Co-Fundadora', gender: 'female' as const },
+    { name: 'Yenny Sanchez Aguilar', email: 'yesanchez2026@udec.cl', role: 'COO & Co-Fundador', gender: 'male' as const },
   ]
 
   const INVESTOR = {

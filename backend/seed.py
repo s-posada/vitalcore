@@ -17,7 +17,7 @@ FOUNDERS_EQUIPO_2 = [
         "tier": "pro",
         "is_admin": True,
         "days_left": 30,
-        "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=sebastian"
+        "avatar_url": "https://randomuser.me/api/portraits/men/12.jpg"
     },
     {
         "email": "andresburboa@udec.cl",
@@ -26,7 +26,7 @@ FOUNDERS_EQUIPO_2 = [
         "tier": "pro",
         "is_admin": True,
         "days_left": 30,
-        "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=andres"
+        "avatar_url": "https://randomuser.me/api/portraits/men/32.jpg"
     },
     {
         "email": "cavergara2019@udec.cl",
@@ -35,7 +35,7 @@ FOUNDERS_EQUIPO_2 = [
         "tier": "pro",
         "is_admin": True,
         "days_left": 30,
-        "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=catalina"
+        "avatar_url": "https://randomuser.me/api/portraits/women/44.jpg"
     },
     {
         "email": "falvarado2016@udec.cl",
@@ -44,7 +44,7 @@ FOUNDERS_EQUIPO_2 = [
         "tier": "pro",
         "is_admin": True,
         "days_left": 30,
-        "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=fabian"
+        "avatar_url": "https://randomuser.me/api/portraits/men/45.jpg"
     },
     {
         "email": "margarcia2026@udec.cl",
@@ -53,7 +53,7 @@ FOUNDERS_EQUIPO_2 = [
         "tier": "pro",
         "is_admin": True,
         "days_left": 30,
-        "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=marian"
+        "avatar_url": "https://randomuser.me/api/portraits/women/65.jpg"
     },
     {
         "email": "yesanchez2026@udec.cl",
@@ -62,7 +62,7 @@ FOUNDERS_EQUIPO_2 = [
         "tier": "pro",
         "is_admin": True,
         "days_left": 30,
-        "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=yenny"
+        "avatar_url": "https://randomuser.me/api/portraits/men/67.jpg"
     }
 ]
 
@@ -73,7 +73,7 @@ INVESTOR = {
     "tier": "pro",
     "is_admin": True,
     "days_left": 365,
-    "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=martin_mellado"
+    "avatar_url": "https://randomuser.me/api/portraits/men/22.jpg"
 }
 
 OTHER_USERS = [
@@ -83,7 +83,7 @@ OTHER_USERS = [
         "tier": "premium",
         "is_admin": False,
         "days_left": 22,
-        "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=ana"
+        "avatar_url": "https://randomuser.me/api/portraits/women/33.jpg"
     },
     {
         "email": "carlos.vega@gmail.com",
@@ -91,7 +91,7 @@ OTHER_USERS = [
         "tier": "inicial",
         "is_admin": False,
         "days_left": 18,
-        "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=carlos"
+        "avatar_url": "https://randomuser.me/api/portraits/men/91.jpg"
     },
     {
         "email": "paula.diaz@gmail.com",
@@ -99,7 +99,7 @@ OTHER_USERS = [
         "tier": "pro",
         "is_admin": False,
         "days_left": 29,
-        "avatar_url": "https://api.dicebear.com/7.x/avataaars/svg?seed=paula"
+        "avatar_url": "https://randomuser.me/api/portraits/women/50.jpg"
     }
 ]
 

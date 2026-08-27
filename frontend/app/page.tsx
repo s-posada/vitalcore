@@ -31,7 +31,7 @@ export default function LandingPage() {
     { name: 'Catalina Antonia Vergara Donoso', role: 'Chief Health Officer & Co-Fundadora', email: 'cavergara2019@udec.cl', gender: 'female' as const },
     { name: 'Fabian Alonso Alvarado Arriagada', role: 'Head of AI & Co-Fundador', email: 'falvarado2016@udec.cl', gender: 'male' as const },
     { name: 'Marian Garcia Cruz', role: 'Head of Product & Co-Fundadora', email: 'margarcia2026@udec.cl', gender: 'female' as const },
-    { name: 'Yenny Sanchez Aguilar', role: 'COO & Co-Fundadora', email: 'yesanchez2026@udec.cl', gender: 'female' as const },
+    { name: 'Yenny Sanchez Aguilar', role: 'COO & Co-Fundador', email: 'yesanchez2026@udec.cl', gender: 'male' as const },
   ]
 
   return (

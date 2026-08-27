@@ -65,8 +65,8 @@ export default function Navbar() {
       id: 6,
       name: 'Yenny Sanchez Aguilar',
       email: 'yesanchez2026@udec.cl',
-      role: 'COO & Co-Fundadora',
-      avatar_url: avatarUrl('Yenny Sanchez Aguilar', 'female'),
+      role: 'COO & Co-Fundador',
+      avatar_url: avatarUrl('Yenny Sanchez Aguilar', 'male'),
       tier: 'pro',
       is_admin: true,
       days_left: 30
