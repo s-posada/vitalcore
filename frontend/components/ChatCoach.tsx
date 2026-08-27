@@ -152,6 +152,7 @@ export default function ChatCoach() {
               placeholder="Escribe tu pregunta..."
               className="input-dark text-sm py-2.5 flex-1"
               disabled={sending}
+              maxLength={400}
             />
             <button
               type="submit"
