@@ -3,8 +3,13 @@ import React, { useState, useEffect, useMemo } from 'react'
 import Navbar from '@/components/Navbar'
 import {
   Dumbbell, Zap, Loader2, Sparkles, AlertTriangle, Timer, X, Lightbulb, Check,
-  TrendingUp, Target, Flame, Activity, CalendarCheck2
+  TrendingUp, Target, Flame, Activity, CalendarCheck2, Pencil, Route, Trophy,
+  Rocket, Medal, MapPin, Clock3
 } from 'lucide-react'
+import {
+  ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
+  CartesianGrid, Tooltip, Legend, ReferenceLine
+} from 'recharts'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -72,11 +77,51 @@ const GOAL_WEEKLY_DELTA: Record<string, number> = {
 }
 
 const GOAL_LABELS: Record<string, string> = {
-  gain_muscle: 'Hipertrofia (superávit controlado)',
-  lose_fat: 'Definición (déficit sostenible)',
+  gain_muscle: 'Ganar masa muscular',
+  lose_fat: 'Reducir grasa corporal',
   maintain: 'Recomposición corporal',
-  improve_endurance: 'Resistencia cardiovascular',
-  improve_flexibility: 'Movilidad & flexibilidad',
+  improve_endurance: 'Mejorar resistencia',
+  improve_flexibility: 'Mejorar flexibilidad',
+}
+
+// Registro real editable por ejercicio
+type ActualEntry = {
+  sets?: number
+  reps?: number
+  minutes?: number
+  distance_km?: number
+}
+
+const isCardioExercise = (ex: any) =>
+  ex.rest_sec === 0 || /min/.test(String(ex.reps || ''))
+
+// Reps planificadas como número (toma el primer número del string "10-12", "15 + dropset", "20 min")
+const plannedRepsNumber = (reps: any): number => {
+  const m = String(reps || '').match(/\d+/)
+  return m ? parseInt(m[0]) : 0
+}
+
+function ProgressRing({ pct, size = 120, stroke = 10 }: { pct: number, size?: number, stroke?: number }) {
+  const r = (size - stroke) / 2
+  const c = 2 * Math.PI * r
+  const off = c - (Math.min(100, Math.max(0, pct)) / 100) * c
+  return (
+    <svg width={size} height={size} className="-rotate-90">
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e2e8f0" strokeWidth={stroke} />
+      <circle
+        cx={size / 2} cy={size / 2} r={r} fill="none"
+        stroke="url(#ringGrad)" strokeWidth={stroke} strokeLinecap="round"
+        strokeDasharray={c} strokeDashoffset={off}
+        style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+      />
+      <defs>
+        <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#047857" />
+          <stop offset="100%" stopColor="#34d399" />
+        </linearGradient>
+      </defs>
+    </svg>
+  )
 }
 
 export default function WorkoutPage() {
@@ -88,8 +133,10 @@ export default function WorkoutPage() {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [completedExercises, setCompletedExercises] = useState<Record<string, boolean>>({})
+  const [actuals, setActuals] = useState<Record<string, ActualEntry>>({})
+  const [editingKey, setEditingKey] = useState<string | null>(null)
   const [toastMsg, setToastMsg] = useState('')
-  const [toastType, setToastType] = useState<'success' | 'warning' | 'timer'>('success')
+  const [toastType, setToastType] = useState<'success' | 'warning' | 'timer' | 'trophy'>('success')
   const [activeTimer, setActiveTimer] = useState<number | null>(null)
   const [timerSeconds, setTimerSeconds] = useState(60)
   const [profileGoals, setProfileGoals] = useState<string[]>([])
@@ -98,7 +145,6 @@ export default function WorkoutPage() {
     const stored = localStorage.getItem('vc_user')
     const currentUser = stored ? JSON.parse(stored) : { id: 1, email: 'sposada2026@udec.cl', name: 'Sebastián Posada' }
     setUser(currentUser)
-    // Objetivos declarados en los datos de origen (onboarding)
     try {
       const savedProfile = localStorage.getItem('vc_profile')
       if (savedProfile) {
@@ -108,16 +154,22 @@ export default function WorkoutPage() {
     } catch {}
     loadWorkout(currentUser.id)
     loadStats(currentUser.id)
-    // Persistencia local de checks para que el progreso no se pierda al navegar
+    // Persistencia local: checks y registros reales sobreviven a la navegación
     try {
       const savedChecks = localStorage.getItem('vc_workout_checks')
       if (savedChecks) setCompletedExercises(JSON.parse(savedChecks))
+      const savedActuals = localStorage.getItem('vc_workout_actuals')
+      if (savedActuals) setActuals(JSON.parse(savedActuals))
     } catch {}
   }, [])
 
   useEffect(() => {
     try { localStorage.setItem('vc_workout_checks', JSON.stringify(completedExercises)) } catch {}
   }, [completedExercises])
+
+  useEffect(() => {
+    try { localStorage.setItem('vc_workout_actuals', JSON.stringify(actuals)) } catch {}
+  }, [actuals])
 
   // Rest Timer Hook
   useEffect(() => {
@@ -134,7 +186,7 @@ export default function WorkoutPage() {
     return () => clearInterval(interval)
   }, [activeTimer, timerSeconds])
 
-  const showToast = (msg: string, type: 'success' | 'warning' | 'timer' = 'success') => {
+  const showToast = (msg: string, type: 'success' | 'warning' | 'timer' | 'trophy' = 'success') => {
     setToastMsg(msg)
     setToastType(type)
     setTimeout(() => setToastMsg(''), 3500)
@@ -159,7 +211,6 @@ export default function WorkoutPage() {
           setPlan(data)
           return
         }
-        // Plan vacío en el backend: regenerar y reintentar una vez
         await fetch(`${API}/api/workout/generate/${userId}`, { method: 'POST' })
         const retry = await fetch(`${API}/api/workout/${userId}`)
         if (retry.ok) {
@@ -206,57 +257,101 @@ export default function WorkoutPage() {
   }
 
   const toggleExercise = (key: string) => {
-    setCompletedExercises((prev) => ({ ...prev, [key]: !prev[key] }))
+    setCompletedExercises((prev) => {
+      const next = { ...prev, [key]: !prev[key] }
+      if (next[key]) showToast('¡Ejercicio completado! Sigue así', 'trophy')
+      return next
+    })
+  }
+
+  const updateActual = (key: string, field: keyof ActualEntry, value: string) => {
+    const num = value === '' ? undefined : Math.max(0, Number(value))
+    setActuals((prev) => ({ ...prev, [key]: { ...prev[key], [field]: num } }))
+  }
+
+  const saveActual = (key: string, ex: any) => {
+    const a = actuals[key]
+    setEditingKey(null)
+    if (!a) return
+    const doneSets = a.sets ?? 0
+    if (!isCardioExercise(ex) && doneSets >= ex.sets && !completedExercises[key]) {
+      setCompletedExercises((prev) => ({ ...prev, [key]: true }))
+      showToast(`¡${doneSets} series registradas — ejercicio completado!`, 'trophy')
+    } else if (isCardioExercise(ex) && (a.minutes || a.distance_km) && !completedExercises[key]) {
+      setCompletedExercises((prev) => ({ ...prev, [key]: true }))
+      showToast('¡Sesión de cardio registrada!', 'trophy')
+    } else {
+      showToast('Registro guardado — alimenta tus gráficas de progreso', 'success')
+    }
   }
 
   const currentWeekData = plan?.weeks?.find((w: any) => w.week === selectedWeek) || plan?.weeks?.[0]
   const currentDayData = currentWeekData?.days?.[selectedDayIdx] || currentWeekData?.days?.[0]
 
-  // ── Métricas del panel de progreso ──────────────────────────────────────────
+  // ── Métricas y datasets de gráficas ────────────────────────────────────────
   const metrics = useMemo(() => {
-    // El objetivo principal declarado en los datos de origen manda sobre el del plan
     const goal = profileGoals[0] || plan?.goal || 'gain_muscle'
     const weeklyDelta = GOAL_WEEKLY_DELTA[goal] ?? 0
     const currentWeight = stats?.current_weight || 78.0
 
-    // Volumen semanal: total de series de la semana seleccionada
-    const weeklySets = (currentWeekData?.days || []).reduce(
-      (acc: number, d: any) => acc + (d.exercises || []).reduce((a: number, e: any) => a + (e.sets || 0), 0), 0)
-    const weeklyExercises = (currentWeekData?.days || []).reduce(
-      (acc: number, d: any) => acc + (d.exercises || []).length, 0)
+    let plannedSets = 0, doneSets = 0, plannedEx = 0, doneEx = 0
+    let cardioMinutes = 0, distanceKm = 0, extraSets = 0
+    const perDay: any[] = []
 
-    // Adherencia de la semana seleccionada (checks locales)
-    let done = 0
     ;(currentWeekData?.days || []).forEach((d: any, dIdx: number) => {
-      ;(d.exercises || []).forEach((_: any, eIdx: number) => {
-        if (completedExercises[`w${selectedWeek}_d${dIdx}_e${eIdx}`]) done++
+      let dayPlanned = 0, dayDone = 0
+      ;(d.exercises || []).forEach((ex: any, eIdx: number) => {
+        const key = `w${selectedWeek}_d${dIdx}_e${eIdx}`
+        const a = actuals[key]
+        const checked = completedExercises[key]
+        plannedEx++
+        if (checked) doneEx++
+        if (isCardioExercise(ex)) {
+          if (a?.minutes) cardioMinutes += a.minutes
+          if (a?.distance_km) distanceKm += a.distance_km
+          // cardio cuenta como 1 "serie" para el volumen del día
+          dayPlanned += 1
+          if (checked || a?.minutes || a?.distance_km) dayDone += 1
+          plannedSets += 1
+          if (checked || a?.minutes || a?.distance_km) doneSets += 1
+        } else {
+          dayPlanned += ex.sets
+          plannedSets += ex.sets
+          const real = a?.sets !== undefined ? a.sets : (checked ? ex.sets : 0)
+          dayDone += real
+          doneSets += real
+          if (a?.sets !== undefined && a.sets > ex.sets) extraSets += a.sets - ex.sets
+        }
       })
+      perDay.push({ dia: d.day.slice(0, 3), Plan: dayPlanned, Real: dayDone })
     })
-    const adherence = weeklyExercises > 0 ? Math.round((done / weeklyExercises) * 100) : 0
 
-    // Proyección de peso a 4 semanas ajustada por adherencia (mínimo 40% de efecto)
-    const effect = Math.max(0.4, adherence / 100 || 0.4)
+    const adherence = plannedSets > 0 ? Math.round((doneSets / plannedSets) * 100) : 0
+
+    const effect = Math.max(0.4, Math.min(1.15, adherence / 100 || 0.4))
     const projection = Array.from({ length: 5 }, (_, i) => ({
-      week: i,
-      weight: +(currentWeight + weeklyDelta * effect * i).toFixed(1),
+      name: i === 0 ? 'Hoy' : `Sem ${i}`,
+      Peso: +(currentWeight + weeklyDelta * effect * i).toFixed(1),
     }))
 
-    return {
-      goal,
-      weeklyDelta,
-      currentWeight,
-      weeklySets,
-      weeklyExercises,
-      done,
-      adherence,
-      projection,
-      projectedFinal: projection[4].weight,
-      totalChange: +(projection[4].weight - currentWeight).toFixed(1),
-    }
-  }, [plan, stats, currentWeekData, completedExercises, selectedWeek, profileGoals])
+    // Mensaje motivacional según adherencia
+    let motivation = { msg: '¡Tu primera serie de hoy te está esperando!', icon: Rocket, tone: 'sky' }
+    if (adherence >= 100) motivation = { msg: '¡Semana completada! Nivel élite — considera subir cargas.', icon: Trophy, tone: 'amber' }
+    else if (adherence >= 75) motivation = { msg: '¡Imparable! Estás en la zona de máximos resultados.', icon: Flame, tone: 'primary' }
+    else if (adherence >= 40) motivation = { msg: 'Buen ritmo — cada serie extra acelera tu proyección.', icon: TrendingUp, tone: 'primary' }
+    else if (adherence > 0) motivation = { msg: 'Ya arrancaste, no pares: la constancia gana.', icon: Zap, tone: 'sky' }
 
-  const projMin = Math.min(...metrics.projection.map(p => p.weight)) - 0.5
-  const projMax = Math.max(...metrics.projection.map(p => p.weight)) + 0.5
+    return {
+      goal, weeklyDelta, currentWeight, plannedSets, doneSets, extraSets,
+      plannedEx, doneEx, adherence, cardioMinutes, distanceKm,
+      perDay, projection,
+      projectedFinal: projection[4].Peso,
+      totalChange: +(projection[4].Peso - currentWeight).toFixed(1),
+      motivation,
+    }
+  }, [plan, stats, currentWeekData, completedExercises, actuals, selectedWeek, profileGoals])
+
+  const MotivIcon = metrics.motivation.icon
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -267,6 +362,7 @@ export default function WorkoutPage() {
           {toastType === 'success' && <Sparkles className="w-4 h-4 text-primary-600" />}
           {toastType === 'warning' && <AlertTriangle className="w-4 h-4 text-amber-500" />}
           {toastType === 'timer' && <Timer className="w-4 h-4 text-sky-600" />}
+          {toastType === 'trophy' && <Trophy className="w-4 h-4 text-amber-500" />}
           <span className="text-sm font-medium">{toastMsg}</span>
         </div>
       )}
@@ -291,134 +387,143 @@ export default function WorkoutPage() {
       )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass p-6 rounded-3xl relative overflow-hidden">
+        {/* Header + banner motivacional */}
+        <div className="glass p-6 rounded-3xl relative overflow-hidden">
           <div className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-primary-50 to-transparent pointer-events-none" />
-          <div className="relative">
-            <div className="inline-flex items-center gap-2 text-xs font-bold px-3 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-200 mb-2">
-              <Dumbbell className="w-4 h-4" /> PERIODIZACIÓN DE ENTRENAMIENTO
+          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 text-xs font-bold px-3 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-200 mb-2">
+                <Dumbbell className="w-4 h-4" /> PERIODIZACIÓN DE ENTRENAMIENTO
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
+                Plan de Rutinas & <span className="gradient-text">Sobrecarga Progresiva</span>
+              </h1>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {(profileGoals.length ? profileGoals : [metrics.goal]).map((g, i) => (
+                  <span
+                    key={g}
+                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${
+                      i === 0 ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-primary-700 border-primary-200'
+                    }`}
+                  >
+                    {i === 0 ? '★ ' : ''}{GOAL_LABELS[g] || g}
+                  </span>
+                ))}
+              </div>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
-              Plan de Rutinas & <span className="gradient-text">Sobrecarga Progresiva</span>
-            </h1>
-            <p className="text-sm text-slate-500 mt-1 max-w-2xl">
-              Mesociclo de 4 semanas adaptado a tus datos de origen
-            </p>
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {(profileGoals.length ? profileGoals : [metrics.goal]).map((g, i) => (
-                <span
-                  key={g}
-                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${
-                    i === 0 ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-primary-700 border-primary-200'
-                  }`}
-                >
-                  {i === 0 ? '★ ' : ''}{GOAL_LABELS[g] || g}
-                </span>
-              ))}
-            </div>
+
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
+              className="btn-primary py-2.5 px-5 text-xs font-bold flex items-center gap-2 whitespace-nowrap self-start md:self-auto"
+            >
+              {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+              {generating ? 'Recalculando...' : 'Regenerar Mesociclo'}
+            </button>
           </div>
 
-          <button
-            onClick={handleGenerate}
-            disabled={generating}
-            className="btn-primary py-2.5 px-5 text-xs font-bold flex items-center gap-2 whitespace-nowrap self-start md:self-auto relative"
-          >
-            {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-            {generating ? 'Recalculando...' : 'Regenerar Mesociclo'}
-          </button>
+          {/* Banner motivacional dinámico */}
+          <div className={`relative mt-4 flex items-center gap-3 rounded-2xl px-4 py-3 border ${
+            metrics.motivation.tone === 'amber' ? 'bg-amber-50 border-amber-200 text-amber-800' :
+            metrics.motivation.tone === 'sky' ? 'bg-sky-50 border-sky-200 text-sky-800' :
+            'bg-primary-50 border-primary-200 text-primary-800'
+          }`}>
+            <MotivIcon className="w-5 h-5 shrink-0" />
+            <span className="text-sm font-semibold">{metrics.motivation.msg}</span>
+            <span className="ml-auto text-xs font-bold opacity-70 whitespace-nowrap">Racha: {stats?.streak_days ?? 14} días</span>
+          </div>
         </div>
 
-        {/* ── PANEL DE PROGRESO & PROYECCIONES ─────────────────────────────── */}
+        {/* ── PANEL DE CONTROL: RING + GRÁFICAS ───────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Stat cards */}
-          <div className="grid grid-cols-2 gap-4 lg:col-span-1">
-            <div className="card p-5">
-              <div className="flex items-center justify-between text-slate-400 text-[11px] font-bold uppercase tracking-wider mb-2">
-                <span>Adherencia</span>
-                <CalendarCheck2 className="w-4 h-4 text-primary-600" />
+          {/* Ring de adherencia + contadores */}
+          <div className="card p-6 flex flex-col items-center justify-center text-center">
+            <div className="relative">
+              <ProgressRing pct={metrics.adherence} size={150} stroke={12} />
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-3xl font-black text-slate-900">{metrics.adherence}%</span>
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Cumplimiento</span>
               </div>
-              <div className="text-3xl font-black text-slate-900">{metrics.adherence}<span className="text-base text-slate-400">%</span></div>
-              <div className="progress-bar mt-2">
-                <div className="progress-fill" style={{ width: `${metrics.adherence}%` }} />
-              </div>
-              <div className="text-[11px] text-slate-500 mt-2">{metrics.done} de {metrics.weeklyExercises} ejercicios · Semana {selectedWeek}</div>
             </div>
-
-            <div className="card p-5">
-              <div className="flex items-center justify-between text-slate-400 text-[11px] font-bold uppercase tracking-wider mb-2">
-                <span>Volumen</span>
-                <Activity className="w-4 h-4 text-sky-600" />
+            <div className="mt-4 grid grid-cols-2 gap-2 w-full text-left">
+              <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5">
+                <div className="text-[10px] uppercase font-bold text-slate-400">Series reales</div>
+                <div className="font-black text-slate-900 text-lg">{metrics.doneSets}<span className="text-xs text-slate-400 font-semibold"> / {metrics.plannedSets}</span></div>
               </div>
-              <div className="text-3xl font-black text-slate-900">{metrics.weeklySets}</div>
-              <div className="text-[11px] text-slate-500 mt-2">series efectivas programadas esta semana</div>
+              <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5">
+                <div className="text-[10px] uppercase font-bold text-slate-400">Series extra</div>
+                <div className={`font-black text-lg ${metrics.extraSets > 0 ? 'text-primary-700' : 'text-slate-900'}`}>
+                  {metrics.extraSets > 0 ? `+${metrics.extraSets}` : '0'}
+                </div>
+              </div>
+              <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5">
+                <div className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1"><Clock3 className="w-3 h-3" /> Cardio</div>
+                <div className="font-black text-slate-900 text-lg">{metrics.cardioMinutes}<span className="text-xs text-slate-400 font-semibold"> min</span></div>
+              </div>
+              <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5">
+                <div className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1"><MapPin className="w-3 h-3" /> Distancia</div>
+                <div className="font-black text-slate-900 text-lg">{metrics.distanceKm.toFixed(1)}<span className="text-xs text-slate-400 font-semibold"> km</span></div>
+              </div>
             </div>
+            <p className="text-[11px] text-slate-400 mt-3">Semana {selectedWeek} · {metrics.doneEx} de {metrics.plannedEx} ejercicios completados</p>
+          </div>
 
-            <div className="card p-5">
-              <div className="flex items-center justify-between text-slate-400 text-[11px] font-bold uppercase tracking-wider mb-2">
-                <span>Racha</span>
-                <Flame className="w-4 h-4 text-amber-500" />
-              </div>
-              <div className="text-3xl font-black text-slate-900">{stats?.streak_days ?? 14}<span className="text-base text-slate-400"> días</span></div>
-              <div className="text-[11px] text-slate-500 mt-2">{stats?.workouts_this_week ?? 5} entrenamientos esta semana</div>
-            </div>
-
-            <div className="card p-5">
-              <div className="flex items-center justify-between text-slate-400 text-[11px] font-bold uppercase tracking-wider mb-2">
-                <span>Peso actual</span>
-                <Target className="w-4 h-4 text-primary-600" />
-              </div>
-              <div className="text-3xl font-black text-slate-900">{metrics.currentWeight}<span className="text-base text-slate-400"> kg</span></div>
-              <div className={`text-[11px] font-semibold mt-2 ${metrics.totalChange >= 0 ? 'text-primary-700' : 'text-sky-700'}`}>
-                {metrics.totalChange >= 0 ? '+' : ''}{metrics.totalChange} kg proyectados en 4 semanas
-              </div>
+          {/* Barras: Plan vs Real por día */}
+          <div className="card p-6">
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 mb-1">
+              <Activity className="w-4 h-4 text-sky-600" /> Volumen: Plan vs Real
+            </h3>
+            <p className="text-[11px] text-slate-400 mb-3">Series por día — edita tus registros y esta gráfica se actualiza al instante</p>
+            <div className="h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={metrics.perDay} barGap={2}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <XAxis dataKey="dia" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={26} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
+                    cursor={{ fill: '#f1f5f9' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="Plan" fill="#cbd5e1" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="Real" fill="#059669" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Projection chart */}
-          <div className="card lg:col-span-2 p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary-600" /> Proyección de Peso Corporal
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Estimación a 4 semanas según tu objetivo y adherencia real
-                </p>
-              </div>
+          {/* Área: proyección de peso */}
+          <div className="card p-6">
+            <div className="flex items-start justify-between mb-1">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-primary-600" /> Proyección de Peso
+              </h3>
               <div className="text-right">
-                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Meta semana 4</div>
-                <div className="text-2xl font-black text-primary-700">{metrics.projectedFinal} kg</div>
+                <div className="text-[10px] uppercase font-bold text-slate-400">Meta sem. 4</div>
+                <div className="text-lg font-black text-primary-700">{metrics.projectedFinal} kg</div>
               </div>
             </div>
-
-            <div className="h-44 flex items-end gap-4 pt-6 pb-2 px-2 border-b border-slate-200">
-              {metrics.projection.map((p, idx) => {
-                const heightPct = Math.max(12, ((p.weight - projMin) / (projMax - projMin)) * 100)
-                const isCurrent = idx === 0
-                return (
-                  <div key={idx} className="flex-1 flex flex-col items-center gap-1.5 group">
-                    <span className={`text-xs font-bold font-mono ${isCurrent ? 'text-slate-900' : 'text-primary-700'}`}>
-                      {p.weight}
-                    </span>
-                    <div
-                      className={`w-full max-w-[70px] rounded-t-xl transition-all group-hover:brightness-105 ${
-                        isCurrent
-                          ? 'bg-gradient-to-t from-slate-300 to-slate-200 border border-slate-300'
-                          : 'bg-gradient-to-t from-primary-600 to-primary-400 shadow-sm shadow-primary-200'
-                      }`}
-                      style={{ height: `${heightPct}%` }}
-                    />
-                    <span className="text-[10px] text-slate-500 font-semibold">
-                      {idx === 0 ? 'Hoy' : `Sem ${idx}`}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-            <p className="text-[11px] text-slate-400 mt-3 flex items-center gap-1.5">
-              <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              La proyección se recalcula con tu adherencia: al completar más ejercicios de la semana, la estimación se acerca al ritmo óptimo ({metrics.weeklyDelta >= 0 ? '+' : ''}{metrics.weeklyDelta} kg/semana).
+            <p className="text-[11px] text-slate-400 mb-3">
+              {metrics.totalChange >= 0 ? '+' : ''}{metrics.totalChange} kg estimados · ajustado por tu {metrics.adherence}% de cumplimiento
             </p>
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={metrics.projection}>
+                  <defs>
+                    <linearGradient id="pesoGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#059669" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#059669" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                  <YAxis domain={['dataMin - 0.5', 'dataMax + 0.5']} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={34} />
+                  <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }} />
+                  <ReferenceLine y={metrics.currentWeight} stroke="#94a3b8" strokeDasharray="4 4" />
+                  <Area type="monotone" dataKey="Peso" stroke="#059669" strokeWidth={2.5} fill="url(#pesoGrad)" dot={{ r: 3, fill: '#059669' }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
 
@@ -467,7 +572,7 @@ export default function WorkoutPage() {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] uppercase font-bold text-primary-700">{d.day}</span>
-                    {dayDone === dayTotal && dayTotal > 0 && <Check className="w-3.5 h-3.5 text-primary-600" />}
+                    {dayDone === dayTotal && dayTotal > 0 && <Medal className="w-3.5 h-3.5 text-amber-500" />}
                   </div>
                   <div className="text-xs font-bold text-slate-900 truncate mt-0.5">{d.focus}</div>
                   <div className="text-[10px] text-slate-400 mt-1">{dayDone}/{dayTotal} ejercicios</div>
@@ -484,7 +589,9 @@ export default function WorkoutPage() {
               <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                 <Dumbbell className="w-5 h-5 text-primary-600" /> {currentDayData?.day}: {currentDayData?.focus}
               </h2>
-              <p className="text-xs text-slate-500">Marca los ejercicios a medida que completas las series efectivas</p>
+              <p className="text-xs text-slate-500">
+                Marca lo completado y usa <span className="font-semibold text-primary-700">Registrar</span> para anotar lo que realmente hiciste — más o menos que el plan, todo cuenta.
+              </p>
             </div>
             <div className="text-xs text-slate-500">
               Completados:{' '}
@@ -498,6 +605,12 @@ export default function WorkoutPage() {
             {currentDayData?.exercises?.map((ex: any, idx: number) => {
               const key = `w${selectedWeek}_d${selectedDayIdx}_e${idx}`
               const isDone = completedExercises[key]
+              const a = actuals[key]
+              const cardio = isCardioExercise(ex)
+              const isEditing = editingKey === key
+              const plannedReps = plannedRepsNumber(ex.reps)
+              const setsDiff = !cardio && a?.sets !== undefined ? a.sets - ex.sets : null
+              const setsPct = !cardio && a?.sets !== undefined && ex.sets > 0 ? Math.round((a.sets / ex.sets) * 100) : null
 
               return (
                 <div
@@ -546,7 +659,107 @@ export default function WorkoutPage() {
                           <span>Descanso: {ex.rest_sec}s</span>
                         </button>
                       )}
+                      <button
+                        onClick={() => setEditingKey(isEditing ? null : key)}
+                        className="px-2.5 py-1 rounded-xl bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 text-xs font-semibold transition-colors flex items-center gap-1.5"
+                        title="Registrar lo que realmente hiciste"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        <span>Registrar</span>
+                      </button>
                     </div>
+
+                    {/* Registro real (editable) */}
+                    {isEditing && (
+                      <div className="mb-3 p-3 rounded-xl bg-white border border-primary-200 space-y-2 animate-slide-up">
+                        <div className="text-[10px] uppercase font-bold text-primary-700 tracking-wider">¿Qué hiciste realmente?</div>
+                        {cardio ? (
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] text-slate-500 block mb-0.5">Tiempo (min)</label>
+                              <input
+                                type="number" min="0" className="input-dark text-xs py-1.5 px-2"
+                                value={a?.minutes ?? ''} placeholder="Ej: 25"
+                                onChange={(e) => updateActual(key, 'minutes', e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-slate-500 block mb-0.5">Distancia (km)</label>
+                              <input
+                                type="number" min="0" step="0.1" className="input-dark text-xs py-1.5 px-2"
+                                value={a?.distance_km ?? ''} placeholder="Ej: 4.5"
+                                onChange={(e) => updateActual(key, 'distance_km', e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] text-slate-500 block mb-0.5">Series hechas (plan: {ex.sets})</label>
+                              <input
+                                type="number" min="0" className="input-dark text-xs py-1.5 px-2"
+                                value={a?.sets ?? ''} placeholder={`Ej: ${ex.sets}`}
+                                onChange={(e) => updateActual(key, 'sets', e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-slate-500 block mb-0.5">Reps promedio (plan: {ex.reps})</label>
+                              <input
+                                type="number" min="0" className="input-dark text-xs py-1.5 px-2"
+                                value={a?.reps ?? ''} placeholder={plannedReps ? `Ej: ${plannedReps}` : 'Ej: 10'}
+                                onChange={(e) => updateActual(key, 'reps', e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        <button
+                          onClick={() => saveActual(key, ex)}
+                          className="w-full btn-primary py-1.5 text-xs font-bold"
+                        >
+                          Guardar registro
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Resumen del registro real vs plan */}
+                    {!isEditing && a && (cardio ? (a.minutes || a.distance_km) : a.sets !== undefined) && (
+                      <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px]">
+                        {cardio ? (
+                          <>
+                            {a.minutes !== undefined && (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-primary-50 border border-primary-200 text-primary-800 font-semibold">
+                                <Clock3 className="w-3 h-3" /> {a.minutes} min reales
+                              </span>
+                            )}
+                            {a.distance_km !== undefined && (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-primary-50 border border-primary-200 text-primary-800 font-semibold">
+                                <Route className="w-3 h-3" /> {a.distance_km} km recorridos
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-primary-50 border border-primary-200 text-primary-800 font-semibold">
+                              {a.sets} series{a.reps !== undefined ? ` × ${a.reps} reps` : ''} reales
+                            </span>
+                            {setsPct !== null && (
+                              <span className={`px-2 py-1 rounded-lg font-bold border ${
+                                setsPct >= 100 ? 'bg-primary-600 text-white border-primary-600' : 'bg-amber-50 text-amber-700 border-amber-200'
+                              }`}>
+                                {setsPct}% del plan
+                              </span>
+                            )}
+                            {setsDiff !== null && setsDiff !== 0 && (
+                              <span className={`px-2 py-1 rounded-lg font-bold border ${
+                                setsDiff > 0 ? 'bg-primary-50 text-primary-700 border-primary-200' : 'bg-slate-50 text-slate-500 border-slate-200'
+                              }`}>
+                                {setsDiff > 0 ? `+${setsDiff} extra` : `${setsDiff} vs plan`}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
 
                     {ex.notes && (
                       <p className="text-xs text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-start gap-1.5">
