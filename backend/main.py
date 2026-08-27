@@ -1,4 +1,5 @@
-import os, json
+import os, json, random
+import httpx
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -10,6 +11,9 @@ from database import (
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timedelta
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL = "gemini-2.0-flash"
 
 # ── App setup ──────────────────────────────────────────────────────────────────
 app = FastAPI(
@@ -107,6 +111,11 @@ class CommentCreate(BaseModel):
 class TierChangeRequest(BaseModel):
     tier: str # inicial, premium, pro
     days_to_add: Optional[int] = 30
+
+class ChatMessage(BaseModel):
+    user_id: int
+    message: str
+    history: Optional[List[dict]] = None
 
 class EventCreateRequest(BaseModel):
     title: str
@@ -827,3 +836,107 @@ def admin_get_metrics(admin_email: str, db: Session = Depends(get_db)):
         "total_rsvps": total_rsvps,
         "active_rate_pct": 92.5
     }
+
+# ── CHAT / COACH VIRTUAL ─────────────────────────────────────────────────────
+GOAL_NAMES = {
+    "gain_muscle": "ganar masa muscular",
+    "lose_fat": "reducir grasa corporal",
+    "maintain": "mantener tu composición actual",
+    "improve_endurance": "mejorar tu resistencia",
+    "improve_flexibility": "mejorar tu flexibilidad",
+}
+
+def _build_user_context(db: Session, user_id: int) -> dict:
+    user = db.query(User).filter(User.id == user_id).first()
+    profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
+    plan = db.query(NutritionPlan).filter(NutritionPlan.user_id == user_id).order_by(NutritionPlan.created_at.desc()).first()
+    logs = db.query(DailyLog).filter(DailyLog.user_id == user_id).order_by(DailyLog.date.desc()).limit(7).all()
+    return {
+        "name": user.name if user else "Atleta",
+        "tier": user.tier if user else "inicial",
+        "goal": GOAL_NAMES.get(profile.goal, "tu objetivo") if profile else "tu objetivo",
+        "weight_kg": profile.weight_kg if profile else None,
+        "target_weight_kg": profile.target_weight_kg if profile else None,
+        "tdee": profile.tdee if profile else None,
+        "daily_calories": plan.daily_calories if plan else None,
+        "protein_g": plan.protein_g if plan else None,
+        "recent_logs": len(logs),
+        "last_mood": logs[0].mood if logs else None,
+    }
+
+def _fallback_reply(message: str, ctx: dict) -> str:
+    """Respuestas basadas en reglas usando los datos reales del usuario — funciona sin clave de IA."""
+    m = message.lower().strip()
+    name = ctx["name"].split(" ")[0]
+
+    if any(k in m for k in ["hola", "buenas", "buenos días", "buenas tardes", "hey"]):
+        return f"¡Hola {name}! Soy tu coach de VitalCore. Puedo ayudarte con nutrición, tu rutina, meditación o motivación. ¿En qué te ayudo hoy?"
+
+    if any(k in m for k in ["peso", "adelgaz", "bajar", "subir de peso", "kilos"]):
+        extra = f" Tu meta es llegar a {ctx['target_weight_kg']} kg." if ctx.get("target_weight_kg") else ""
+        return f"Tu objetivo actual es {ctx['goal']}.{extra} Lo más importante es la constancia: registra tu peso y tus comidas cada día en el Dashboard para que el plan se ajuste solo."
+
+    if any(k in m for k in ["calor", "macro", "proteína", "proteina", "comida", "nutri", "dieta", "comer"]):
+        if ctx.get("daily_calories"):
+            return f"Tu plan actual apunta a {ctx['daily_calories']} kcal/día, con {ctx.get('protein_g', '—')}g de proteína. Puedes ver el menú completo del día en la sección Nutrición, y regenerarlo si cambias de objetivo."
+        return "Aún no tienes un plan de nutrición generado. Ve a la sección Nutrición y toca 'Regenerar con IA' para crear el tuyo según tus datos."
+
+    if any(k in m for k in ["entren", "ejercicio", "rutina", "gym", "pesas", "corr", "cardio"]):
+        return f"Tu rutina está pensada para {ctx['goal']}. Cuando entrenes, no olvides usar 'Registrar' en cada ejercicio para anotar las series reales que hiciste — así tus gráficas de progreso son exactas, no solo un check."
+
+    if any(k in m for k in ["medit", "estrés", "estres", "ansiedad", "dormir", "sueño", "relaj"]):
+        return "En la sección Meditación tienes sesiones guiadas por voz para estrés, sueño y enfoque. Una de 5-10 minutos antes de dormir puede ayudarte bastante con la calidad del descanso."
+
+    if any(k in m for k in ["motiv", "cansad", "no puedo", "difícil", "dificil", "rendirme", "flojera"]):
+        lines = [
+            f"Sé que a veces cuesta, {name}, pero cada registro que haces hoy es la base del resultado de mañana. Un solo hábito a la vez.",
+            f"No necesitas un día perfecto, {name}, solo uno mejor que ayer. Revisa tu racha en el Dashboard, seguro está más cerca de lo que crees.",
+            f"El progreso real no es lineal, {name}. Lo importante es que sigas registrando, incluso en los días flojos — eso es lo que alimenta tu plan.",
+        ]
+        return random.choice(lines)
+
+    if any(k in m for k in ["plan", "premium", "pro", "membres", "precio", "pagar"]):
+        return f"Estás en el plan {ctx['tier']}. En la sección Planes puedes comparar los tres niveles y cambiar cuando quieras — el cambio se aplica al instante."
+
+    return f"Puedo ayudarte con nutrición, tu rutina de entrenamiento, meditación o motivación. Cuéntame un poco más sobre qué necesitas, {name}."
+
+async def _gemini_reply(message: str, ctx: dict, history: Optional[List[dict]]) -> Optional[str]:
+    if not GEMINI_API_KEY:
+        return None
+    system_prompt = (
+        f"Eres el coach virtual de VitalCore, una app de bienestar. Hablas en español, cercano y breve (máximo 3-4 frases). "
+        f"El usuario se llama {ctx['name']}, su objetivo es {ctx['goal']}, su plan actual es {ctx.get('daily_calories', 'sin definir')} kcal/día "
+        f"y {ctx.get('protein_g', '—')}g de proteína, tiene {ctx['recent_logs']} registros esta semana. "
+        f"Responde solo sobre nutrición, entrenamiento, meditación o motivación relacionados a VitalCore."
+    )
+    contents = []
+    for h in (history or [])[-6:]:
+        role = "user" if h.get("role") == "user" else "model"
+        contents.append({"role": role, "parts": [{"text": h.get("text", "")}]})
+    contents.append({"role": "user", "parts": [{"text": message}]})
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+    payload = {
+        "contents": contents,
+        "systemInstruction": {"parts": [{"text": system_prompt}]},
+        "generationConfig": {"maxOutputTokens": 200, "temperature": 0.7},
+    }
+    try:
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            res = await client.post(url, json=payload)
+            if res.status_code != 200:
+                return None
+            data = res.json()
+            return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except Exception:
+        return None
+
+@app.post("/api/chat/coach")
+async def chat_coach(data: ChatMessage, db: Session = Depends(get_db)):
+    ctx = _build_user_context(db, data.user_id)
+    reply = await _gemini_reply(data.message, ctx, data.history)
+    source = "gemini"
+    if not reply:
+        reply = _fallback_reply(data.message, ctx)
+        source = "fallback"
+    return {"reply": reply, "source": source}
