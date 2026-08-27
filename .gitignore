@@ -1,0 +1,26 @@
+# Secretos y configuración local — nunca subir credenciales reales
+.env
+.env.local
+.env.*.local
+*.pem
+
+# Python
+backend/venv/
+__pycache__/
+*.pyc
+
+# Bases de datos locales (datos de prueba)
+*.db
+*.sqlite3
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+
+# Logs y temporales
+*.log
+.DS_Store
+
+# Scaffold experimental (tiene su propio .git)
+frontend2/
