@@ -1,0 +1,12 @@
+services:
+  - name: vitalcore-api
+    type: web
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /
+    envVars:
+      # URL del frontend en Vercel — se completa al crear el Blueprint (evita CORS abierto a "*")
+      - key: ALLOWED_ORIGINS
+        value: http://localhost:3000,http://localhost:3100
