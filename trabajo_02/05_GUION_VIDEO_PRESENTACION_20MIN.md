@@ -3,7 +3,7 @@
 Asignatura: Prototipos y Creatividad  
 Profesor: Martín Mellado Guerrero  
 Universidad de Concepción  
-Equipo: VitalCore (Sebastián Posada, Andy Burboa, Yenny Sánchez, Fabián Alvarado, Catalina, Mariam)  
+Equipo: VitalCore (Sebastian, Andy, Yenny, Fabo, Cata, Mari)  
 
 ---
 
@@ -13,12 +13,12 @@ El video tiene una duración planificada de 15 a 20 minutos. Cada bloque cuenta 
 
 | Bloque | Minutero Aprox. | Expositor Sugerido | Tema Central | Apoyo Visual |
 | :---: | :---: | :--- | :--- | :--- |
-| Bloque 1 | 00:00 - 03:00 | Sebastián Posada | Apertura, propuesta de valor de VitalCore y aspecto 1 de testeo (Onboarding y motor calórico). | Diapositivas 1 y 2 + diagrama de arquitectura. |
-| Bloque 2 | 03:00 - 06:00 | Andy Burboa | Aspectos 2 y 3 de testeo (latencia del asistente inteligente y métricas de telemetría diaria). | Diapositivas con pruebas funcionales y no funcionales. |
-| Bloque 3 | 06:00 - 09:00 | Yenny Sánchez | Evaluación interna de UX (nota 74/100), análisis según heurísticas de Nielsen y backlog de fricciones iniciales. | Recorrido por el prototipo V1 señalando puntos de fricción. |
-| Bloque 4 | 09:00 - 12:30 | Catalina | Resultados del testeo con usuarios reales (Valentina, Carlos y Marta), tiempos por tarea y puntaje SUS. | Gráficos de resultados y citas textuales de usuarios. |
-| Bloque 5 | 12:30 - 16:30 | Fabián Alvarado | Demostración en vivo de los ajustes técnicos en V2: Búsqueda Semántica Vectorial (Similitud Coseno) y Servidor MCP. | Navegación compartida por la aplicación web en /trabajo02. |
-| Bloque 6 | 16:30 - 20:00 | Mariam (+ Cierre grupal) | Ajustes en telemetría (Quick Log), matriz de trazabilidad feedback-código y conclusiones metodológicas. | Matriz de trazabilidad y cámara activa del equipo para cierre. |
+| Bloque 1 | 00:00 - 03:00 | Sebastian | Apertura, propuesta de valor de VitalCore y aspecto 1 de testeo (Onboarding y motor calórico). | Diapositivas 1 y 2 + diagrama de arquitectura. |
+| Bloque 2 | 03:00 - 06:00 | Andy | Aspectos 2 y 3 de testeo (latencia del asistente inteligente y métricas de telemetría diaria). | Diapositivas con pruebas funcionales y no funcionales. |
+| Bloque 3 | 06:00 - 09:00 | Yenny | Evaluación interna de UX (nota 74/100), análisis según heurísticas de Nielsen y backlog de fricciones iniciales. | Recorrido por el prototipo V1 señalando puntos de fricción. |
+| Bloque 4 | 09:00 - 12:30 | Cata | Resultados del testeo con usuarios reales (Valentina, Carlos y Marta), tiempos por tarea y puntaje SUS. | Gráficos de resultados y citas textuales de usuarios. |
+| Bloque 5 | 12:30 - 16:30 | Fabo | Demostración en vivo de los ajustes técnicos en V2: Búsqueda Semántica Vectorial (Similitud Coseno) y Servidor MCP. | Navegación compartida por https://frontend-eight-xi-97.vercel.app/trabajo02. |
+| Bloque 6 | 16:30 - 20:00 | Mari (+ Cierre grupal) | Ajustes en telemetría (Quick Log), matriz de trazabilidad feedback-código y conclusiones metodológicas. | Matriz de trazabilidad y cámara activa del equipo para cierre. |
 
 ---
 
@@ -67,7 +67,7 @@ El video tiene una duración planificada de 15 a 20 minutos. Cada bloque cuenta 
 
 ---
 
-### Bloque 6: Trazabilidad, Métricas de Impacto y Cierre (Mariam + Cierre Grupal)
+### Bloque 6: Trazabilidad, Métricas de Impacto y Cierre (Mari + Cierre Grupal)
 * **Objetivo:** Consolidar la matriz de trazabilidad y concluir la presentación.
 * **Pauta verbal sugerida:**  
   "Como complemento a la arquitectura, rediseñamos el flujo de telemetría implementando un registro rápido en un solo clic. El usuario únicamente ingresa sus calorías totales y el backend distribuye automáticamente los macronutrientes estimados, reduciendo el tiempo de registro de 47.6 a 7.8 segundos.  
