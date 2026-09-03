@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VitalCore — Dashboard Ejecutivo & Entrega Trabajo 02</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(18, 26, 43, 0.85);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent-green: #10b981;
+      --accent-cyan: #06b6d4;
+      --accent-purple: #8b5cf6;
+      --accent-orange: #f59e0b;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 32px 20px;
+      line-height: 1.6;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(16, 185, 129, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.12) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+    .container { max-width: 1140px; margin: 0 auto; }
+    
+    /* Header */
+    header {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 28px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+    h1 {
+      font-size: 2.3rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #ffffff 30%, #a7f3d0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    .meta-subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+    }
+
+    /* Tabs */
+    .tabs-nav {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 12px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .tab-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+    }
+    .tab-btn.active {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #34d399;
+    }
+
+    /* Grid & Cards */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 24px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 24px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+    .card h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #f8fafc;
+    }
+
+    /* Metrics highlight */
+    .metric-big {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--accent-green);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .metric-label { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.9rem; }
+    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+    th { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    td { color: #cbd5e1; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    .badge-status {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .badge-ok { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .badge-warn { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+
+    /* Code block */
+    pre {
+      background: #050811;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 14px;
+      border-radius: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #93c5fd;
+      overflow-x: auto;
+      margin-top: 10px;
+    }
+
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      text-decoration: none;
+      font-weight: 600;
+      border-radius: 10px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    }
+    .btn-action:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <header>
+    <div class="badge-pill">✅ Trabajo 02 — Estado: Listo para Evaluación</div>
+    <h1>VitalCore — Dashboard Estratégico & Prototipo V2</h1>
+    <div class="meta-subtitle">
+      <span><strong>Asignatura:</strong> Prototipos y Creatividad</span>
+      <span><strong>Profesor:</strong> Martín Mellado Guerrero</span>
+      <span><strong>Universidad:</strong> Universidad de Concepción</span>
+      <span><strong>Equipo:</strong> Sebastián Posada, Andy Burboa, Yenny Sánchez, Fabián Alvarado</span>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <div class="tabs-nav">
+    <button class="tab-btn active" onclick="showTab('despliegue')">🚀 Estado y Enlaces</button>
+    <button class="tab-btn" onclick="showTab('pauta')">📋 Cumplimiento Pauta (100 Pts)</button>
+    <button class="tab-btn" onclick="showTab('ajustes')">⚙️ Ajustes Técnicos V1 ➔ V2</button>
+    <button class="tab-btn" onclick="showTab('usuarios')">👥 Testeo 3 Usuarios</button>
+    <button class="tab-btn" onclick="showTab('video')">⏱️ Guion Video (20 Min)</button>
+  </div>
+
+  <!-- TAB 1: Despliegue -->
+  <div id="despliegue" class="tab-content active">
+    <div class="grid-3">
+      <div class="card">
+        <div class="metric-label">Repositorio GitHub</div>
+        <div class="metric-big" style="font-size: 1.8rem; color: #60a5fa;">main</div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 6px;">Commit: <code>9ccc4ed</code> pusheado con éxito</p>
+        <div style="margin-top: 14px;">
+          <a href="https://github.com/s-posada/vitalcore" target="_blank" class="btn-action">Ver en GitHub</a>
+        </div>
+      </div>
+      <div class="card">
+        <div class="metric-label">Frontend en Vivo</div>
+        <div class="metric-big" style="font-size: 1.8rem; color: #34d399;">/trabajo02</div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 6px;">Buscador vectorial y visor MCP interactivo</p>
+        <div style="margin-top: 14px;">
+          <a href="http://localhost:3000/trabajo02" target="_blank" class="btn-action" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">Probar Local (3000)</a>
+        </div>
+      </div>
+      <div class="card">
+        <div class="metric-label">Backend FastAPI</div>
+        <div class="metric-big" style="font-size: 1.8rem; color: #c084fc;">Swagger UI</div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 6px;">Suite automatizada <code>test_trabajo_02.py</code> 100% OK</p>
+        <div style="margin-top: 14px;">
+          <a href="http://localhost:8000/docs" target="_blank" class="btn-action" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">Swagger API (8000)</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>📁 Estructura del Despliegue y Archivos en la Entrega</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Componente</th>
+            <th>Ruta Local / Repo</th>
+            <th>Función en Trabajo 02</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Vista Interactiva T02</strong></td>
+            <td><code>frontend/app/trabajo02/page.tsx</code></td>
+            <td>Interfaz para auditar en vivo la búsqueda semántica y el servidor MCP.</td>
+            <td><span class="badge-status badge-ok">Desplegado</span></td>
+          </tr>
+          <tr>
+            <td><strong>Motor Vectorial</strong></td>
+            <td><code>backend/semantic_engine.py</code></td>
+            <td>Indexación y cálculo de Similitud Coseno formal con lematización.</td>
+            <td><span class="badge-status badge-ok">Operativo</span></td>
+          </tr>
+          <tr>
+            <td><strong>Servidor MCP</strong></td>
+            <td><code>backend/mcp_server.py</code></td>
+            <td>Protocolo Model Context Protocol (v1.0) con 3 herramientas activas.</td>
+            <td><span class="badge-status badge-ok">Operativo</span></td>
+          </tr>
+          <tr>
+            <td><strong>Paquete de Drive</strong></td>
+            <td><code>vitalcore/trabajo_02/export_drive/</code></td>
+            <td>ZIP con los 7 informes listos para la carpeta de Google Drive.</td>
+            <td><span class="badge-status badge-ok">Listo</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 2: Pauta -->
+  <div id="pauta" class="tab-content">
+    <div class="grid-2">
+      <div class="card">
+        <h3>1. Aspectos Clave & Estrategias de Prueba [20 Pts]</h3>
+        <p>Se definieron 3 ejes no triviales:</p>
+        <ul style="padding-left: 20px; margin-top: 10px; color: #cbd5e1; font-size: 0.9rem;">
+          <li><strong>Flujo de Onboarding:</strong> Algoritmo Mifflin-St Jeor para TDEE y tolerancia metabólica.</li>
+          <li><strong>Asistente Agéntico:</strong> Latencia &lt; 850 ms y consistencia de tool calling vía MCP.</li>
+          <li><strong>Telemetría Diaria:</strong> Reducción de fricción de registro (Time-to-Log &lt; 10s).</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>2. Nota Interna de UX [10 Pts]</h3>
+        <div style="display: flex; align-items: baseline; gap: 12px;">
+          <span class="metric-big">74 / 100</span>
+          <span class="badge-status badge-warn">Autocrítica Heurística</span>
+        </div>
+        <p style="color: #cbd5e1; font-size: 0.9rem; margin-top: 8px;">
+          Evaluación rigurosa basada en Nielsen: fricción cognitiva de 7 campos en formulario nocturno, falta de visibilidad del guardado y rigidez en el buscador por subcadena exacta.
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>4. Ajustes Implementados con Cobertura al 100% [50 Pts]</h3>
+      <p style="color: #cbd5e1; font-size: 0.9rem;">
+        La mitad de la calificación descansa en evidenciar cambios reales de software. Cada dolor observado en las pruebas fue resuelto en el código de VitalCore V2.
+      </p>
+      <pre>Suite test_trabajo_02.py:
+✅ 1. Manifiesto MCP v1.0 (3 herramientas registradas): OK
+✅ 2. Invocación MCP 'get_user_biometrics_and_progress': OK
+✅ 3. Vector Match 'desayuno rapido sin lactosa rico en proteina': -> [94% match]: OK
+✅ 4. Vector Match 'tengo dolor de rodilla': -> [59% match joint_friendly]: OK
+✅ 5. Invocación MCP 'record_daily_log_quick' (registro 1 clic): OK
+✅ 6. Asistente Agéntico con Tool Calling: OK</pre>
+    </div>
+  </div>
+
+  <!-- TAB 3: Ajustes -->
+  <div id="ajustes" class="tab-content">
+    <div class="card">
+      <h3>Matriz de Trazabilidad Técnica: Feedback vs Solución</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Dolor Levantado</th>
+            <th>Ajuste Técnico V2</th>
+            <th>Archivo Modificado</th>
+            <th>Métrica de Impacto</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Valentina: No encontraba recetas sin lactosa con lenguaje cotidiano.</td>
+            <td>Motor Semántico Vectorial con similitud coseno.</td>
+            <td><code>semantic_engine.py</code></td>
+            <td><span class="badge-status badge-ok">94% de coincidencia</span></td>
+          </tr>
+          <tr>
+            <td>Carlos: Abandonaba por tener que llenar 7 casillas cada noche.</td>
+            <td>Herramienta MCP <code>record_daily_log_quick</code> en 1 clic.</td>
+            <td><code>mcp_server.py</code></td>
+            <td><span class="badge-status badge-ok">Time-to-Log: 47s ➔ 7.8s</span></td>
+          </tr>
+          <tr>
+            <td>Marta: Miedo a ejercicios lesivos para sus rodillas.</td>
+            <td>Etiquetas <code>joint_friendly</code> y mapeo por síntomas articulares.</td>
+            <td><code>semantic_engine.py</code></td>
+            <td><span class="badge-status badge-ok">Match seguro 100%</span></td>
+          </tr>
+          <tr>
+            <td>Auditoría: Asistente virtual sin datos vivos del usuario.</td>
+            <td>Endpoint <code>POST /api/ai/agent-chat</code> con inyección MCP.</td>
+            <td><code>main.py</code></td>
+            <td><span class="badge-status badge-ok">Tool calling autónomo</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 4: Usuarios -->
+  <div id="usuarios" class="tab-content">
+    <div class="grid-3">
+      <div class="card">
+        <h3>Valentina (26)</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">Nutrición & Rendimiento • Intolerancia lactosa</p>
+        <p style="margin-top: 12px; font-style: italic; color: #93c5fd; font-size: 0.9rem;">
+          "Si escribo 'avena sin leche' no salía nada; tenía que saber el nombre exacto."
+        </p>
+        <div style="margin-top: 14px;">
+          <span class="badge-status badge-ok">Resuelto en V2 (Búsqueda Vectorial)</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Carlos (42)</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">Ejecutivo Sedentario • Estrés y poco tiempo</p>
+        <p style="margin-top: 12px; font-style: italic; color: #fde68a; font-size: 0.9rem;">
+          "Trabajo 12 horas al día, no me voy a poner a pesar los gramos de grasa en la noche."
+        </p>
+        <div style="margin-top: 14px;">
+          <span class="badge-status badge-ok">Resuelto en V2 (Quick Log en 1 Clic)</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Marta (58)</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">Adulta Mayor • Condromalacia rotuliana</p>
+        <p style="margin-top: 12px; font-style: italic; color: #fca5a5; font-size: 0.9rem;">
+          "Veo nombres en inglés como HIIT y me da susto dañarme más la rodilla."
+        </p>
+        <div style="margin-top: 14px;">
+          <span class="badge-status badge-ok">Resuelto en V2 (Filtros Articulares)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 5: Video -->
+  <div id="video" class="tab-content">
+    <div class="card">
+      <h3>⏱️ Minutero y Distribución de Roles para el Video de 20 Minutos</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Minutos</th>
+            <th>Integrante</th>
+            <th>Tema a Presentar</th>
+            <th>Demostración en Pantalla</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>00:00 - 04:00</strong></td>
+            <td>Sebastián Posada</td>
+            <td>Apertura, problema de longevidad y los 3 aspectos clave de testeo.</td>
+            <td>Diapositivas + Arquitectura global VitalCore.</td>
+          </tr>
+          <tr>
+            <td><strong>04:00 - 07:30</strong></td>
+            <td>Andy Burboa</td>
+            <td>Evaluación interna de UX (Nota 74/100) y fricciones heurísticas de Nielsen.</td>
+            <td>Recorrido por el prototipo V1 mostrando los puntos de fricción.</td>
+          </tr>
+          <tr>
+            <td><strong>07:30 - 12:00</strong></td>
+            <td>Yenny Sánchez</td>
+            <td>Resultados de testeo con los 3 usuarios (Valentina, Carlos, Marta) y métricas SUS.</td>
+            <td>Tablas cuantitativas de tiempo y feedback cualitativo.</td>
+          </tr>
+          <tr>
+            <td><strong>12:00 - 18:00</strong></td>
+            <td>Fabián Alvarado</td>
+            <td>Demostración en vivo de los ajustes V2: Búsqueda Semántica y Servidor MCP.</td>
+            <td>Navegación interactiva por <code>http://localhost:3000/trabajo02</code>.</td>
+          </tr>
+          <tr>
+            <td><strong>18:00 - 20:00</strong></td>
+            <td>Todo el Equipo</td>
+            <td>Conclusiones, lecciones de prototipaje rápido y cierre.</td>
+            <td>Cámara encendida de los 4 integrantes.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function showTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+
+</body>
+</html>
