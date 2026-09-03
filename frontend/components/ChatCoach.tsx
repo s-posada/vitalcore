@@ -2,8 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { MessageCircle, X, Send, Sparkles, Loader2 } from 'lucide-react'
 import { avatarUrl } from '@/lib/avatar'
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+import { API_BASE_URL as API } from '@/lib/api'
 
 type ChatMsg = { role: 'user' | 'model'; text: string }
 

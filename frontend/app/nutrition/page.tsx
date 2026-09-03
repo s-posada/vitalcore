@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import Navbar from '@/components/Navbar'
 import { Salad, Zap, Loader2, Sparkles, AlertTriangle, Sunrise, Drumstick, Fish, Apple, Coffee, Leaf, Moon, Droplet, Microscope, Check } from 'lucide-react'
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+import { API_BASE_URL as API } from '@/lib/api'
 
 export default function NutritionPage() {
   const [user, setUser] = useState<any>(null)

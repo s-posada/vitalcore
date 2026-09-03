@@ -3,8 +3,7 @@ import React, { useState, useEffect } from 'react'
 import Navbar from '@/components/Navbar'
 import { avatarUrl } from '@/lib/avatar'
 import { Users, Mic, Building2, MessageCircle, Ticket, Lock, Rocket, AlertTriangle, Heart, Trophy, Flame } from 'lucide-react'
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+import { API_BASE_URL as API } from '@/lib/api'
 
 export default function CommunityPage() {
   const [user, setUser] = useState<any>(null)

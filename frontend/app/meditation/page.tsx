@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import Navbar from '@/components/Navbar'
 import { Flower2, Mic, Headphones, Pause, Play, Check, Wind, Sprout, Moon, Dumbbell, Target, Zap, Heart, Timer } from 'lucide-react'
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+import { API_BASE_URL as API } from '@/lib/api'
 
 export default function MeditationPage() {
   const [user, setUser] = useState<any>(null)

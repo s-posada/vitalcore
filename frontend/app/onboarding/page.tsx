@@ -4,8 +4,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { avatarUrl } from '@/lib/avatar'
 import { Dumbbell, Flame, Scale, PersonStanding, Flower2, Check, Bot, Loader2, Rocket } from 'lucide-react'
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+import { API_BASE_URL as API } from '@/lib/api'
 
 const GOALS = [
   { id: 'gain_muscle', icon: Dumbbell, label: 'Ganar masa muscular', desc: 'Aumentar volumen y fuerza' },

@@ -7,8 +7,7 @@ import {
   BarChart3, Users, Ticket, Droplet, Sparkles, Bot, Mic, Leaf, Timer,
   Rocket, Dna, Zap, Award, TrendingUp
 } from 'lucide-react'
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+import { API_BASE_URL as API } from '@/lib/api'
 
 export default function PricingPage() {
   const router = useRouter()
