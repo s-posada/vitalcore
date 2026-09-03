@@ -17,7 +17,7 @@ El video tiene una duración planificada de 15 a 20 minutos. Cada bloque cuenta 
 | Bloque 2 | 03:00 - 06:00 | Andy Burboa | Aspectos 2 y 3 de testeo (latencia del asistente inteligente y métricas de telemetría diaria). | Diapositivas con pruebas funcionales y no funcionales. |
 | Bloque 3 | 06:00 - 09:00 | Yenny Sánchez | Evaluación interna de UX (nota 74/100), análisis según heurísticas de Nielsen y backlog de fricciones iniciales. | Recorrido por el prototipo V1 señalando puntos de fricción. |
 | Bloque 4 | 09:00 - 12:30 | Catalina | Resultados del testeo con usuarios reales (Valentina, Carlos y Marta), tiempos por tarea y puntaje SUS. | Gráficos de resultados y citas textuales de usuarios. |
-| Bloque 5 | 12:30 - 16:30 | Fabián Alvarado | Demostración en vivo de los ajustes técnicos en V2: Búsqueda Semántica Vectorial (Similitud Coseno) y Servidor MCP. | Navegación compartida por http://localhost:3000/trabajo02. |
+| Bloque 5 | 12:30 - 16:30 | Fabián Alvarado | Demostración en vivo de los ajustes técnicos en V2: Búsqueda Semántica Vectorial (Similitud Coseno) y Servidor MCP. | Navegación compartida por la aplicación web en /trabajo02. |
 | Bloque 6 | 16:30 - 20:00 | Mariam (+ Cierre grupal) | Ajustes en telemetría (Quick Log), matriz de trazabilidad feedback-código y conclusiones metodológicas. | Matriz de trazabilidad y cámara activa del equipo para cierre. |
 
 ---
