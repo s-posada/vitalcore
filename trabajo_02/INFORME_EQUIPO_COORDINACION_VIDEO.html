@@ -3,19 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VitalCore — Briefing de Equipo & Coordinación de Video (Trabajo 02)</title>
+  <title>VitalCore — Coordinación de Equipo y Video Trabajo 02</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #0b0f19;
-      --card-bg: rgba(17, 24, 39, 0.9);
+      --card-bg: rgba(17, 24, 39, 0.95);
       --card-border: rgba(255, 255, 255, 0.08);
-      --emerald: #10b981;
-      --cyan: #06b6d4;
-      --purple: #8b5cf6;
-      --amber: #f59e0b;
+      --accent: #10b981;
+      --accent-muted: rgba(16, 185, 129, 0.15);
       --text: #f8fafc;
       --text-muted: #94a3b8;
     }
@@ -25,112 +23,83 @@
       background: var(--bg);
       color: var(--text);
       line-height: 1.6;
-      padding: 36px 20px;
-      background-image: radial-gradient(circle at 80% 10%, rgba(16, 185, 129, 0.1) 0%, transparent 40%),
-                        radial-gradient(circle at 20% 90%, rgba(6, 182, 212, 0.1) 0%, transparent 40%);
-      background-attachment: fixed;
+      padding: 32px 20px;
     }
     .container { max-width: 1060px; margin: 0 auto; }
-    
     header {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 20px;
-      padding: 32px;
+      border-radius: 16px;
+      padding: 28px;
       margin-bottom: 24px;
-      backdrop-filter: blur(12px);
     }
     .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      background: rgba(16, 185, 129, 0.15);
+      display: inline-block;
+      padding: 4px 12px;
+      background: var(--accent-muted);
       border: 1px solid rgba(16, 185, 129, 0.3);
       color: #34d399;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      margin-bottom: 12px;
-    }
-    h1 {
-      font-size: 2.2rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, #ffffff 40%, #a7f3d0 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 8px;
-    }
-    .meta { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 18px; }
-    
-    .btn-group { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 18px;
-      border-radius: 10px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 0.2s ease;
-    }
-    .btn-primary { background: linear-gradient(135deg, #10b981, #059669); color: white; }
-    .btn-secondary { background: rgba(255, 255, 255, 0.06); color: var(--text); border: 1px solid var(--card-border); }
-    .btn:hover { transform: translateY(-2px); }
-
-    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 24px; }
-    
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      padding: 24px;
-      backdrop-filter: blur(10px);
-      margin-bottom: 24px;
-    }
-    .card h2 { font-size: 1.3rem; margin-bottom: 14px; color: #fff; display: flex; align-items: center; gap: 8px; }
-    .card h3 { font-size: 1.05rem; margin-bottom: 10px; color: #e2e8f0; }
-
-    .checklist-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      padding: 10px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    .check-icon { color: #34d399; font-weight: 800; font-size: 1.1rem; }
-
-    table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 0.9rem; }
-    th, td { padding: 14px; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
-    th { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(255, 255, 255, 0.02); }
-    td { color: #cbd5e1; }
-    tr:hover td { background: rgba(255, 255, 255, 0.03); }
-
-    .tag-member {
-      display: inline-block;
-      padding: 4px 10px;
       border-radius: 6px;
       font-size: 0.8rem;
       font-weight: 700;
-      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      margin-bottom: 12px;
     }
-    .tag-seba { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-    .tag-andy { background: rgba(6, 182, 212, 0.2); color: #38bdf8; }
-    .tag-yenny { background: rgba(139, 92, 246, 0.2); color: #c084fc; }
-    .tag-fabian { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
-    .tag-all { background: rgba(255, 255, 255, 0.1); color: #fff; }
-
-    .alert-box {
-      background: rgba(6, 182, 212, 0.1);
-      border-left: 4px solid var(--cyan);
-      padding: 16px 20px;
+    h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+    .meta { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px; }
+    .btn-group { display: flex; flex-wrap: wrap; gap: 10px; }
+    .btn {
+      display: inline-block;
+      padding: 9px 16px;
       border-radius: 8px;
-      margin: 16px 0;
-      font-size: 0.95rem;
-      color: #bae6fd;
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: #059669; color: white; }
+    .btn-secondary { background: rgba(255, 255, 255, 0.05); color: var(--text); border: 1px solid var(--card-border); }
+    .btn:hover { opacity: 0.9; }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 { font-size: 1.25rem; margin-bottom: 12px; color: #fff; border-bottom: 1px solid var(--card-border); padding-bottom: 8px; }
+    .checklist-item {
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      font-size: 0.92rem;
+    }
+    .checklist-item strong { color: #34d399; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 0.88rem; }
+    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+    th { color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; background: rgba(255, 255, 255, 0.02); }
+    td { color: #cbd5e1; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    .tag-member {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+    }
+    .note-box {
+      background: rgba(16, 185, 129, 0.05);
+      border-left: 3px solid #10b981;
+      padding: 14px 18px;
+      border-radius: 6px;
+      margin: 14px 0;
+      font-size: 0.9rem;
+      color: #cbd5e1;
     }
   </style>
 </head>
@@ -138,165 +107,145 @@
 
 <div class="container">
 
-  <!-- Header -->
   <header>
-    <div class="badge">🚀 Trabajo Técnico Listo al 100% — Coordinación Video</div>
-    <h1>VitalCore: Briefing para el Equipo (Trabajo 02)</h1>
+    <div class="badge">Estado de Entrega: Documentación y Plataforma Listas</div>
+    <h1>VitalCore: Coordinación de Trabajo 02</h1>
     <div class="meta">
-      <strong>Equipo:</strong> Sebastián Posada • Andy Burboa • Yenny Sánchez • Fabián Alvarado<br>
-      <strong>Asignatura:</strong> Prototipos y Creatividad — Magíster UdeC (Profesor Martín Mellado)
+      Asignatura: Prototipos y Creatividad — Magíster UdeC (Profesor Martín Mellado)<br>
+      Equipo: Sebastián Posada, Andy Burboa, Yenny Sánchez, Fabián Alvarado, Catalina, Mariam
     </div>
     <div class="btn-group">
-      <a href="https://drive.google.com/drive/folders/1CykOFVeQ6OLrSzXoq2lzdPWH1YYFXMYd" target="_blank" class="btn btn-primary">📁 Abrir Carpeta Google Drive</a>
-      <a href="https://github.com/s-posada/vitalcore" target="_blank" class="btn btn-secondary">💻 Ver Repositorio en GitHub</a>
-      <a href="http://localhost:3000/trabajo02" target="_blank" class="btn btn-secondary">🌐 Probar Plataforma Local (/trabajo02)</a>
+      <a href="https://drive.google.com/drive/folders/1CykOFVeQ6OLrSzXoq2lzdPWH1YYFXMYd" target="_blank" class="btn btn-primary">Carpeta Google Drive</a>
+      <a href="https://github.com/s-posada/vitalcore" target="_blank" class="btn btn-secondary">Repositorio GitHub</a>
+      <a href="http://localhost:3000/trabajo02" target="_blank" class="btn btn-secondary">Prototipo Local (/trabajo02)</a>
     </div>
   </header>
 
-  <!-- Estado del Proyecto -->
   <div class="card">
-    <h2>✅ 1. Estado del Proyecto: ¿Qué Está Ya Resuelto?</h2>
-    <p style="color: #94a3b8; font-size: 0.95rem; margin-bottom: 16px;">
-      Para su tranquilidad con los plazos, toda la ingeniería técnica y la documentación requerida por la pauta del profesor están completamente finalizadas:
-    </p>
+    <h2>1. Requisitos de la Pauta Oficial (100 Puntos)</h2>
     <div class="checklist-item">
-      <div class="check-icon">✓</div>
-      <div>
-        <strong>Punto 1 (20 pts) — Aspectos Clave & Estrategia de Pruebas:</strong> Onboarding biológico, latencia de asistente y reducción de fricción en telemetría diaria con métricas Lean Analytics.
-      </div>
+      <strong>Punto 1 [20 pts] — Aspectos Clave y Estrategias de Prueba:</strong> Definición de 3 aspectos a testear en la primera versión (onboarding metabólico, latencia de asistente y retención en telemetría) con pruebas funcionales, no funcionales y métricas Lean Analytics.
     </div>
     <div class="checklist-item">
-      <div class="check-icon">✓</div>
-      <div>
-        <strong>Punto 2 (10 pts) — Evaluación Interna de UX:</strong> Nota de <strong>74 / 100</strong> fundamentada con las heurísticas de Nielsen, explicando con honestidad las fricciones detectadas en V1.
-      </div>
+      <strong>Punto 2 [10 pts] — Calificación Interna de UX:</strong> Nota interna de 74 sobre 100 fundamentada bajo las heurísticas de Nielsen, documentando con honestidad las fricciones detectadas en V1.
     </div>
     <div class="checklist-item">
-      <div class="check-icon">✓</div>
-      <div>
-        <strong>Punto 3 (20 pts) — Resultados de Testeo con 3 Usuarios:</strong> Pruebas y conclusiones con Valentina (nutrición deportiva), Carlos (ejecutivo sedentario) y Marta (adulta mayor con afección articular).
-      </div>
+      <strong>Punto 3 [20 pts] — Conclusiones de Testeo con 3 Usuarios:</strong> Resultados de interacción observados con Valentina (26, nutrición), Carlos (42, ejecutivo) y Marta (58, afección articular).
     </div>
     <div class="checklist-item">
-      <div class="check-icon">✓</div>
-      <div>
-        <strong>Punto 4 (50 pts) — Ajustes Implementados y Trazabilidad:</strong> Búsqueda Semántica Vectorial con similitud coseno, Servidor MCP v1.0 con Tool Calling, Registro Rápido en 1 clic y vista interactiva <code>/trabajo02</code> en Next.js.
-      </div>
+      <strong>Punto 4 [50 pts] — Ajustes Implementados y Trazabilidad:</strong> Demostración en código de la evolución a V2 cubriendo todo el feedback: Búsqueda Semántica Vectorial con Similitud Coseno, Servidor Model Context Protocol (MCP v1.0), Registro Rápido en un clic y ruta interactiva /trabajo02.
     </div>
   </div>
 
-  <!-- Qué dejé listo en el Drive -->
   <div class="card">
-    <h2>📁 2. ¿Qué Tienen Listo en la Carpeta de Google Drive?</h2>
-    <p style="color: #94a3b8; font-size: 0.95rem; margin-bottom: 12px;">
-      Todo el material ya está estructurado para que no tengan que redactar nada desde cero:
-    </p>
+    <h2>2. Archivos Respaldados en Google Drive</h2>
     <table>
       <thead>
         <tr>
           <th>Documento</th>
-          <th>Propósito en la Entrega</th>
+          <th>Criterio que Respalda</th>
           <th>Contenido Principal</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td><code>01_ESTRATEGIA_Y_PLAN_DE_PRUEBAS.md</code></td>
+          <td>01_ESTRATEGIA_Y_PLAN_DE_PRUEBAS.md</td>
           <td>Punto 1 (20 pts)</td>
-          <td>Aspectos funcionales, no funcionales y métricas AARRR.</td>
+          <td>Plan de pruebas funcionales, no funcionales y métricas esperadas.</td>
         </tr>
         <tr>
-          <td><code>02_EVALUACION_UX_ESTADO_ACTUAL.md</code></td>
+          <td>02_EVALUACION_UX_ESTADO_ACTUAL.md</td>
           <td>Punto 2 (10 pts)</td>
-          <td>Desglose de la nota 74/100 y áreas de exploración.</td>
+          <td>Desglose de la nota 74/100 y backlog de usabilidad.</td>
         </tr>
         <tr>
-          <td><code>03_RESULTADOS_TESTEO_USUARIOS.md</code></td>
+          <td>03_RESULTADOS_TESTEO_USUARIOS.md</td>
           <td>Punto 3 (20 pts)</td>
-          <td>Casos observados, tiempos por tarea y puntajes SUS.</td>
+          <td>Evidencia de interacciones, tiempos y escala SUS.</td>
         </tr>
         <tr>
-          <td><code>04_AJUSTES_IMPLEMENTADOS_Y_TRAZABILIDAD.md</code></td>
+          <td>04_AJUSTES_IMPLEMENTADOS_Y_TRAZABILIDAD.md</td>
           <td>Punto 4 (50 pts)</td>
           <td>Matriz de dolor vs solución técnica en código.</td>
         </tr>
         <tr>
-          <td><code>05_GUION_VIDEO_PRESENTACION_20MIN.md</code></td>
-          <td>Soporte Grabación</td>
-          <td>El libreto exacto que nos toca a cada uno.</td>
+          <td>05_GUION_VIDEO_PRESENTACION_20MIN.md</td>
+          <td>Soporte Video</td>
+          <td>Libreto completo y minutero por participante.</td>
         </tr>
         <tr>
-          <td><code>VitalCore_Trabajo_02_Consolidado.html</code></td>
-          <td>Visor Rápido</td>
-          <td>Documento web consolidado para leer todo en 5 minutos.</td>
+          <td>VitalCore_Trabajo_02_Consolidado.html</td>
+          <td>Informe Completo</td>
+          <td>Documento web que compila todo en un único archivo visual.</td>
         </tr>
       </tbody>
     </table>
   </div>
 
-  <!-- Minutero del Video -->
   <div class="card">
-    <h2>⏱️ 3. Distribución del Video de Presentación (20 Minutos)</h2>
-    <div class="alert-box">
-      <strong>Estrategia de Grabación:</strong> Se dividió en bloques de 3 a 4 minutos por integrante. Cada uno se enfoca en un tema específico con su respectiva pantalla compartida. Si el video definitivo es de 15 minutos, solo acortamos 40-50 segundos por bloque sin alterar el guion.
+    <h2>3. Propuesta Modular para la Grabación del Video (20 Minutos)</h2>
+    <div class="note-box">
+      La pauta exige un video grupal de 20 minutos (o 15 minutos adaptables). A continuación se propone una distribución de 3 a 4 minutos por integrante. Si el equipo prefiere que expongan solo 2 o 3 integrantes y que los demás apoyen en edición o en la eventual exposición del sábado, los bloques pueden unificarse sin alterar el contenido técnico.
     </div>
     <table>
       <thead>
         <tr>
           <th>Bloque / Tiempo</th>
-          <th>Integrante</th>
-          <th>Tema a Explicar</th>
-          <th>Demostración en Pantalla</th>
+          <th>Expositor Propuesto</th>
+          <th>Contenido a Exponer</th>
+          <th>Apoyo en Pantalla</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td><strong>00:00 - 04:00</strong> (4 min)</td>
-          <td><span class="tag-member tag-seba">Sebastián Posada</span></td>
-          <td>Apertura, problema de adherencia en longevidad y los 3 aspectos clave de testeo.</td>
-          <td>Diapositivas 1 a 3 + Arquitectura del prototipo.</td>
+          <td><strong>00:00 - 03:00</strong></td>
+          <td><span class="tag-member">Sebastián Posada</span></td>
+          <td>Apertura, propuesta de valor de VitalCore y aspecto 1 de testeo (Onboarding y motor calórico).</td>
+          <td>Diapositivas 1 y 2 + diagrama de arquitectura.</td>
         </tr>
         <tr>
-          <td><strong>04:00 - 07:30</strong> (3.5 min)</td>
-          <td><span class="tag-member tag-andy">Andy Burboa</span></td>
-          <td>Evaluación interna de UX (nota 74/100), análisis heurístico de Nielsen y fricciones V1.</td>
-          <td>Recorrido por la interfaz inicial mostrando los puntos de dolor.</td>
+          <td><strong>03:00 - 06:00</strong></td>
+          <td><span class="tag-member">Andy Burboa</span></td>
+          <td>Aspectos 2 y 3 de testeo (latencia del asistente inteligente y métricas de telemetría diaria).</td>
+          <td>Diapositivas con pruebas funcionales y no funcionales.</td>
         </tr>
         <tr>
-          <td><strong>07:30 - 12:00</strong> (4.5 min)</td>
-          <td><span class="tag-member tag-yenny">Yenny Sánchez</span></td>
-          <td>Resultados y conclusiones del testeo con 3 usuarios reales (Valentina, Carlos, Marta).</td>
-          <td>Tablas comparativas de tiempos, tasas de éxito y testimonios cualitativos.</td>
+          <td><strong>06:00 - 09:00</strong></td>
+          <td><span class="tag-member">Yenny Sánchez</span></td>
+          <td>Evaluación interna de UX (nota 74/100), análisis según heurísticas de Nielsen y backlog de fricciones.</td>
+          <td>Recorrido por el prototipo V1 señalando puntos de fricción.</td>
         </tr>
         <tr>
-          <td><strong>12:00 - 18:00</strong> (6 min)</td>
-          <td><span class="tag-member tag-fabian">Fabián Alvarado</span></td>
-          <td>Demostración en vivo de los ajustes técnicos V2: Búsqueda Semántica Vectorial y Servidor MCP.</td>
-          <td>Pantalla compartida navegando en vivo por <code>http://localhost:3000/trabajo02</code>.</td>
+          <td><strong>09:00 - 12:30</strong></td>
+          <td><span class="tag-member">Catalina</span></td>
+          <td>Resultados del testeo con usuarios reales (Valentina, Carlos y Marta), tiempos por tarea y escala SUS.</td>
+          <td>Gráficos de resultados y citas textuales de usuarios.</td>
         </tr>
         <tr>
-          <td><strong>18:00 - 20:00</strong> (2 min)</td>
-          <td><span class="tag-member tag-all">Todo el Equipo</span></td>
-          <td>Conclusiones, lecciones de prototipaje rápido y cierre formal.</td>
-          <td>Cámara encendida de los 4 integrantes.</td>
+          <td><strong>12:30 - 16:30</strong></td>
+          <td><span class="tag-member">Fabián Alvarado</span></td>
+          <td>Demostración en vivo de los ajustes técnicos en V2: Búsqueda Semántica Vectorial y Servidor MCP.</td>
+          <td>Navegación compartida por http://localhost:3000/trabajo02.</td>
+        </tr>
+        <tr>
+          <td><strong>16:30 - 20:00</strong></td>
+          <td><span class="tag-member">Mariam (+ Cierre grupal)</span></td>
+          <td>Ajustes en telemetría (Quick Log), matriz de trazabilidad feedback-código y conclusiones.</td>
+          <td>Matriz de trazabilidad y cámara activa de los integrantes.</td>
         </tr>
       </tbody>
     </table>
   </div>
 
-  <!-- Próximos pasos -->
   <div class="card">
-    <h2>🤝 4. ¿Cómo Coordinamos la Grabación?</h2>
-    <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 12px;">
-      Para grabar tenemos dos opciones muy sencillas:
+    <h2>4. Opciones de Grabación para el Equipo</h2>
+    <p style="color: #cbd5e1; font-size: 0.92rem; margin-bottom: 10px;">
+      Existen dos alternativas prácticas para concretar el video:
     </p>
-    <ul style="padding-left: 20px; color: #94a3b8; font-size: 0.95rem; margin-bottom: 16px;">
-      <li><strong>Opción A (Reunión Conjunta de 30 min):</strong> Nos conectamos por Google Meet / Teams, compartimos pantalla y grabamos de una sola toma siguiendo el guion.</li>
-      <li><strong>Opción B (Clips Individuales Asíncronos):</strong> Cada uno graba su bloque con Loom / OBS (cámara en esquina + pantalla) y sube su archivo de video a la carpeta de Google Drive para ensamblarlos.</li>
+    <ul style="padding-left: 20px; color: #94a3b8; font-size: 0.92rem;">
+      <li style="margin-bottom: 6px;"><strong>Opción sincrónica:</strong> Conexión de 30 minutos vía Google Meet o Microsoft Teams para grabar la presentación completa compartiendo pantalla de corrido.</li>
+      <li><strong>Opción asincrónica:</strong> Cada integrante graba su segmento de 3 minutos con cámara y pantalla (usando Loom u OBS) y sube su archivo a la carpeta de Google Drive para ensamblar el video final.</li>
     </ul>
-    <p style="color: #f8fafc; font-size: 0.95rem; font-weight: 600;">
-      ¡Avisen por WhatsApp qué opción les acomoda más y fijamos el horario!
-    </p>
   </div>
 
 </div>

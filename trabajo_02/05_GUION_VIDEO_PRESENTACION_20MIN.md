@@ -1,98 +1,75 @@
-# 05. Guion Estructurado para Presentación en Video (20 Minutos)
+# 05. Guion Estructurado para Presentación en Video (Trabajo 02)
 
-**Entrega:** Video de 20 minutos con cámara y pantalla compartida.  
-**Equipo:** VitalCore (Consorcio de Producto & Desarrollo — UdeC).  
-
----
-
-## ⏱️ Minutero y Distribución de Roles
-
-```mermaid
-gantt
-    title Cronograma de los 20 Minutos de Presentación
-    dateFormat  m:s
-    axisFormat  %M:%S
-    section 1. Estrategia & Pruebas
-    Aspectos Clave & Métricas (20 pts) :00:00, 4m
-    section 2. Nota UX V1
-    Auditoría Heurística 74/100 (10 pts) :04:00, 3m
-    section 3. Testeo Usuarios
-    Resultados 3 Usuarios Reales (20 pts) :07:00, 5m
-    section 4. Ajustes en Vivo
-    Bases Vectoriales + Servidor MCP (50 pts) :12:00, 6m
-    section 5. Cierre
-    Conclusiones & Nueva Nota UX 92/100 :18:00, 2m
-```
+Asignatura: Prototipos y Creatividad  
+Profesor: Martín Mellado Guerrero  
+Universidad de Concepción  
+Equipo: VitalCore (Sebastián Posada, Andy Burboa, Yenny Sánchez, Fabián Alvarado, Catalina, Mariam)  
 
 ---
 
-## 🎬 Guion Paso a Paso con Acciones en Pantalla
+## 1. Distribución Modular de Roles (Propuesta para 6 Integrantes)
 
-### Bloque 1 (00:00 – 04:00) | Introducción y Definición de Aspectos Clave [20 Puntos]
-* **En Pantalla:** Diapositiva de portada de VitalCore + Diagrama de los 3 Aspectos Clave de Prueba.
-* **Locución (Expositor 1):**
-  > *"Hola profesor y compañeros. Hoy presentamos la evolución de VitalCore para el Trabajo 02. En nuestra primera versión construimos un prototipo funcional robusto para longevidad y bienestar. Sin embargo, para validar si la solución realmente respondía a la calidad esperada, definimos tres aspectos clave de testeo:*
-  > 
-  > 1. *El primer aspecto fue la **precisión biométrica del algoritmo** (Mifflin-St Jeor) y la coherencia calórica en los planes de 30 días, verificando latencias menores a 150 ms.*
-  > 2. *El segundo aspecto fue la **adherencia y resiliencia en el registro diario**, evaluando el tiempo de llenado (Time-to-Log) y la tolerancia a micro-cortes de red.*
-  > 3. *El tercer aspecto fue la **capacidad del asistente virtual y la búsqueda de contenidos**, midiendo la pertinencia de las respuestas y la velocidad para encontrar sustituciones de comidas o rutinas.*
-  > 
-  > *Combinamos pruebas automatizadas de backend con pruebas de usabilidad estandarizadas como la escala SUS y mediciones de tiempo de tarea crítica."*
+El video tiene una duración planificada de 15 a 20 minutos. Cada bloque cuenta con el contenido que se debe exponer y el apoyo visual correspondiente. Si el equipo decide que presenten solo 2 o 3 integrantes y que el resto apoye en edición y diapositivas, los bloques pueden fusionarse de forma natural.
 
----
-
-### Bloque 2 (04:00 – 07:00) | Calificación Interna de UX V1 (74/100) [10 Puntos]
-* **En Pantalla:** Pantalla `/trabajo02` (Pestaña "Evaluación Heurística UX") y gráfico de las 10 heurísticas de Nielsen.
-* **Locución (Expositor 2):**
-  > *"Antes de salir a testear con usuarios externos, como equipo nos sometimos a una rigurosa auditoría heurística basada en los 10 principios de Jakob Nielsen. Le otorgamos a nuestra V1 una **nota interna de 74 sobre 100**.*
-  > 
-  > *Aunque el diseño visual y la estética obtuvieron un 9/10 gracias al modo oscuro y la coherencia visual, identificamos tres debilidades críticas:*
-  > * *Primero, **Flexibilidad y Eficiencia de Uso (5/10)**: La búsqueda dependía de coincidencias léxicas exactas. Si el usuario buscaba sinónimos, el sistema fallaba.*
-  > * *Segundo, **Control y Libertad (6/10)**: Modificar una comida requería regenerar el mes completo.*
-  > * *Tercero, **Asistencia Inteligente desconectada**: Nuestro chatbot conversaba amablemente pero no podía ver los datos reales del usuario en la base de datos viva."*
+| Bloque | Minutero Aprox. | Expositor Sugerido | Tema Central | Apoyo Visual |
+| :---: | :---: | :--- | :--- | :--- |
+| Bloque 1 | 00:00 - 03:00 | Sebastián Posada | Apertura, propuesta de valor de VitalCore y aspecto 1 de testeo (Onboarding y motor calórico). | Diapositivas 1 y 2 + diagrama de arquitectura. |
+| Bloque 2 | 03:00 - 06:00 | Andy Burboa | Aspectos 2 y 3 de testeo (latencia del asistente inteligente y métricas de telemetría diaria). | Diapositivas con pruebas funcionales y no funcionales. |
+| Bloque 3 | 06:00 - 09:00 | Yenny Sánchez | Evaluación interna de UX (nota 74/100), análisis según heurísticas de Nielsen y backlog de fricciones iniciales. | Recorrido por el prototipo V1 señalando puntos de fricción. |
+| Bloque 4 | 09:00 - 12:30 | Catalina | Resultados del testeo con usuarios reales (Valentina, Carlos y Marta), tiempos por tarea y puntaje SUS. | Gráficos de resultados y citas textuales de usuarios. |
+| Bloque 5 | 12:30 - 16:30 | Fabián Alvarado | Demostración en vivo de los ajustes técnicos en V2: Búsqueda Semántica Vectorial (Similitud Coseno) y Servidor MCP. | Navegación compartida por http://localhost:3000/trabajo02. |
+| Bloque 6 | 16:30 - 20:00 | Mariam (+ Cierre grupal) | Ajustes en telemetría (Quick Log), matriz de trazabilidad feedback-código y conclusiones metodológicas. | Matriz de trazabilidad y cámara activa del equipo para cierre. |
 
 ---
 
-### Bloque 3 (07:00 – 12:00) | Conclusiones del Testeo con 3 Usuarios Reales [20 Puntos]
-* **En Pantalla:** Pestaña "Testeo con 3 Usuarios" con las fichas de Valentina, Carlos y Marta.
-* **Locución (Expositor 3):**
-  > *"Sometimos el prototipo al método de pensamiento en voz alta con tres usuarios representativos:*
-  > 
-  > *1. **Valentina (26 años)**, atleta de alto rendimiento: Completó el onboarding fluidamente, pero al buscar 'desayuno rápido sin lactosa alto en proteína', la búsqueda tradicional devolvió 0 resultados. Nos dijo textualmente: 'Si la app no me entiende en lenguaje natural, da pereza buscar día por día'.*
-  > 
-  > *2. **Carlos (42 años)**, ejecutivo con poco tiempo: Tuvo que llenar 7 campos numéricos de macros en el registro nocturno y nos comentó: 'No peso el arroz en la oficina; necesito un botón rápido o decirle al bot lo que comí'.*
-  > 
-  > *3. **Marta (58 años)**, en readaptación física: Tenía miedo de lastimarse las rodillas al ver nombres técnicos en inglés. Quería buscar 'ejercicios seguros para dolor de rodilla' y la versión 1 no entendía la intención semántica.*
-  > 
-  > *El promedio de satisfacción SUS obtenido en esta primera ronda fue de **72.6/100**, con un tiempo de registro promedio de 47.6 segundos."*
+## 2. Libreto Detallado por Bloque
+
+### Bloque 1: Introducción y Aspectos Clave de Testeo (Sebastián Posada)
+* **Objetivo:** Plantear el problema, justificar el prototipo y abrir el primer criterio de evaluación.
+* **Pauta verbal sugerida:**  
+  "Buenos días profesor Martín y compañeros. Presentamos la evolución de VitalCore para el Trabajo 02. VitalCore es una plataforma diseñada para resolver la baja adherencia en programas de longevidad y bienestar mediante personalización adaptativa y asistencia agéntica.  
+  Para esta segunda entrega, la pauta nos solicitó definir aspectos clave a testear con nuestra primera versión para verificar su calidad. Definimos tres frentes complementarios: pruebas funcionales, pruebas no funcionales y métricas de producto. El primer aspecto testeado fue el flujo de onboarding y el motor de scoring metabólico, donde evaluamos la exactitud en el cálculo del TDEE y el reparto de macronutrientes bajo la ecuación Mifflin-St Jeor, garantizando persistencia reactiva sin pérdida de datos ante caídas de conexión."
 
 ---
 
-### Bloque 4 (12:00 – 18:00) | Demostración en Vivo de los Ajustes Implementados [50 Puntos]
-* **En Pantalla:** Navegador en vivo en `http://localhost:3000/trabajo02` probando el motor vectorial y el servidor MCP.
-* **Locución (Expositor 4 / Demostrador Técnico):**
-  > *"Para resolver el 100% de este feedback, transformamos la arquitectura de VitalCore implementando dos innovaciones de vanguardia:*
-  > 
-  > * **1. Motor de Búsqueda Semántica Vectorial:**
-  >   *Veamos en pantalla: escribo 'tengo dolor de rodilla y busco ejercicio seguro'. Instantáneamente, gracias al cálculo de similitud coseno en un espacio vectorial denso, el sistema devuelve 'Puente de Glúteos en Suelo' con 59% de match y etiqueta `joint_friendly`, explicando por qué es seguro.*
-  >   *Probemos ahora 'desayuno rápido sin lactosa rico en proteína': obtenemos 94% de match con el 'Bowl de Avena Proteica'. Esto resuelve completamente el dolor de Valentina y Marta.*
-  > 
-  > * **2. Servidor MCP (Model Context Protocol) & Agentic Tool Calling:**
-  >   *Como el profesor mencionó la importancia de conectar herramientas a los modelos, implementamos un servidor MCP con el estándar abierto. Veamos en la pestaña MCP: tenemos 3 herramientas registradas.*
-  >   *Si ejecuto `get_user_biometrics_and_progress`, el sistema extrae en vivo el TDEE de 3040 kcal y las metas del usuario. Si ejecuto `record_daily_log_quick`, el usuario o el asistente pueden registrar 2250 kcal con un solo clic o mediante una frase en el chat, reduciendo el Time-to-Log de 47 a menos de 8 segundos.*
-  > 
-  > *Todo esto está respaldado por nuestra suite automatizada `test_trabajo_02.py`, que pasa al 100%."*
+### Bloque 2: Pruebas No Funcionales y Métricas (Andy Burboa)
+* **Objetivo:** Completar el punto 1 de la pauta con métricas técnicas y de usabilidad.
+* **Pauta verbal sugerida:**  
+  "Continuando con el plan de pruebas, nuestro segundo aspecto clave fue la latencia y coherencia del asistente inteligente. Al integrar modelos de lenguaje, el desafío no es solo que respondan, sino que mantengan tiempos de respuesta inferiores a 850 milisegundos y ejecuten herramientas seguras sobre la base de datos viva.  
+  El tercer aspecto evaluado fue la fricción en la captura de telemetría diaria. Definimos métricas de Lean Analytics: tasa de abandono en el formulario y tiempo total requerido para registrar un día completo de nutrición y ejercicio. Establecimos como umbral de éxito un tiempo de registro inferior a 10 segundos, frente a los 45 segundos promedio que demandaba la versión inicial."
 
 ---
 
-### Bloque 5 (18:00 – 20:00) | Conclusiones, Nueva Calificación UX (92/100) y Cierre
-* **En Pantalla:** Pestaña "Evaluación Heurística" mostrando la comparativa 74 ➔ 92/100 y resumen de logros.
-* **Locución (Expositor 1 / Cierre del Equipo):**
-  > *"Al aplicar estos ajustes, volvimos a evaluar las heurísticas de Nielsen:*
-  > * *La Flexibilidad de uso subió de 5/10 a 9/10.*
-  > * *La Asistencia inteligente alcanzó 10/10 gracias a la integración MCP.*
-  > * *Nuestra **nueva calificación interna de UX asciende a 92 sobre 100**.*
-  > 
-  > *VitalCore demuestra cómo la combinación de rigor metodológico en prototipaje, testeo centrado en el usuario y tecnologías modernas como bases vectoriales y protocolos agénticos permiten evolucionar una idea hacia un producto de nivel profesional.*
-  > 
-  > *Muchas gracias por su atención."*
+### Bloque 3: Evaluación Interna de UX (Yenny Sánchez)
+* **Objetivo:** Defender la nota interna de 0 a 100 y sustentar la autocrítica de usabilidad.
+* **Pauta verbal sugerida:**  
+  "El segundo punto de la pauta exigía establecer una nota interna de UX de 0 a 100 para la versión inicial y detallar los aspectos pendientes por mejorar. Nuestro equipo asignó una calificación objetiva de 74 sobre 100, utilizando como marco las diez heurísticas de usabilidad de Jakob Nielsen.  
+  Identificamos cuatro problemas principales: primero, una sobrecarga cognitiva severa al exigir siete campos obligatorios para registrar la comida nocturna; segundo, una transgresión a la heurística de visibilidad del estado del sistema, ya que el usuario no recibía confirmación visual inmediata tras guardar sus datos; tercero, un buscador rígido que fallaba ante sinónimos o lenguaje coloquial; y cuarto, deficiencias de contraste en gráficos oscuros en dispositivos móviles. Todo esto quedó categorizado en un backlog de mejoras priorizado para la versión dos."
+
+---
+
+### Bloque 4: Resultados de Testeo con 3 Usuarios (Catalina)
+* **Objetivo:** Exponer la evidencia de las pruebas con usuarios reales (punto 3 de la pauta).
+* **Pauta verbal sugerida:**  
+  "Para validar estas hipótesis, condujimos pruebas observadas con tres usuarios reales que representaban perfiles contrastantes.  
+  La primera usuaria fue Valentina, de 26 años, orientada al rendimiento deportivo y con intolerancia a la lactosa. Al buscar recetas con términos como 'avena sin leche', el sistema no arrojaba resultados por buscar coincidencia exacta de texto.  
+  El segundo usuario fue Carlos, de 42 años, ejecutivo con jornadas laborales extensas. Carlos abandonó el registro nocturno en el tercer intento debido al tiempo que requería detallar carbohidratos y grasas por separado.  
+  La tercera usuaria fue Marta, de 58 años, con condromalacia rotuliana en una rodilla. Marta manifestó temor a iniciar rutinas de ejercicio cuyos títulos en inglés no le garantizaban protección articular. El puntaje promedio SUS obtenido fue de 68 puntos, confirmando la necesidad de los ajustes implementados."
+
+---
+
+### Bloque 5: Demostración en Vivo de Ajustes V2 (Fabián Alvarado)
+* **Objetivo:** Mostrar los cambios en código y funcionamiento real (punto 4 de la pauta, 50 puntos).
+* **Pauta verbal sugerida:**  
+  "Pasando al núcleo de la entrega, que corresponde a los ajustes implementados para cubrir el feedback, procedo a compartir pantalla con la plataforma en ejecución.  
+  En primer lugar, reemplazamos la búsqueda textual por un motor semántico vectorial desarrollado en el backend con normalización de vectores y similitud coseno. Como pueden observar en la ruta /trabajo02, al consultar 'desayuno rápido sin lactosa rico en proteína', el sistema arroja un 94% de afinidad semántica hacia nuestro Bowl de Avena Proteica. Igualmente, ante la consulta 'dolor de rodilla', el motor prioriza ejercicios con etiqueta joint_friendly.  
+  En segundo lugar, implementamos un servidor bajo el estándar Model Context Protocol (MCP v1.0). El asistente virtual ya no genera texto genérico: invoca de forma autónoma herramientas para leer la biometría viva del usuario y registrar datos directamente en la base de datos."
+
+---
+
+### Bloque 6: Trazabilidad, Métricas de Impacto y Cierre (Mariam + Cierre Grupal)
+* **Objetivo:** Consolidar la matriz de trazabilidad y concluir la presentación.
+* **Pauta verbal sugerida:**  
+  "Como complemento a la arquitectura, rediseñamos el flujo de telemetría implementando un registro rápido en un solo clic. El usuario únicamente ingresa sus calorías totales y el backend distribuye automáticamente los macronutrientes estimados, reduciendo el tiempo de registro de 47.6 a 7.8 segundos.  
+  En la matriz de trazabilidad, cada dolor levantado por Valentina, Carlos y Marta cuenta con una solución técnica validada y certificada mediante una suite de pruebas automatizadas en FastAPI y Next.js.  
+  Agradecemos la atención del profesor Martín y quedamos atentos a sus preguntas y comentarios."
