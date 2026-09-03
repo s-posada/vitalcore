@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Salad, Dumbbell, Flower2, Users, Gem, ShieldCheck, Settings, Crown, BookOpen } from 'lucide-react'
+import { LayoutDashboard, Salad, Dumbbell, Flower2, Users, Gem, ShieldCheck, Settings, Crown, BookOpen, Sparkles } from 'lucide-react'
 import { avatarUrl } from '@/lib/avatar'
 
 export default function Navbar() {
@@ -105,7 +105,8 @@ export default function Navbar() {
     { href: '/meditation', label: 'Meditación', icon: Flower2 },
     { href: '/community', label: 'Comunidad', icon: Users },
     { href: '/pricing', label: 'Planes', icon: Gem },
-    { href: '/historias', label: 'Historias', icon: BookOpen },
+    { href: '/trabajo02', label: 'Trabajo 02', icon: Sparkles },
+    { href: '/historias', label: 'Historias T01', icon: BookOpen },
   ]
 
   const handleSwitchUser = (demoUser: any) => {

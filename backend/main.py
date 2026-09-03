@@ -9,8 +9,11 @@ from database import (
     CommunityGroup, Event, EventRSVP
 )
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
+
+from semantic_engine import semantic_engine
+from mcp_server import MCP_TOOLS_MANIFEST, execute_mcp_tool, tool_get_user_biometrics, tool_search_semantic, tool_record_daily_log
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = "gemini-3.5-flash-lite"
@@ -966,3 +969,154 @@ async def chat_coach(data: ChatMessage, db: Session = Depends(get_db)):
         reply = _fallback_reply(data.message, ctx)
         source = "fallback"
     return {"reply": reply, "source": source}
+
+# ── TRABAJO 02: BÚSQUEDA SEMÁNTICA VECTORIAL & MOTOR MCP ───────────────────────
+
+class SemanticSearchBody(BaseModel):
+    query: str
+    category: Optional[str] = "todas"
+    top_k: Optional[int] = 4
+
+class MCPToolCallRequest(BaseModel):
+    tool: str
+    arguments: Optional[Dict[str, Any]] = None
+
+@app.get("/api/search/semantic")
+def search_semantic_get(q: str, category: Optional[str] = "todas", top_k: Optional[int] = 4):
+    """Búsqueda semántica vectorial sobre nutrición, ejercicios y meditaciones."""
+    if not q or not q.strip():
+        return {"query": "", "total": 0, "results": []}
+    results = semantic_engine.search(query=q, category=category, top_k=top_k)
+    return {
+        "query": q,
+        "category": category,
+        "total": len(results),
+        "results": results
+    }
+
+@app.post("/api/search/semantic")
+def search_semantic_post(body: SemanticSearchBody):
+    """Búsqueda semántica vectorial vía POST para clientes frontend."""
+    results = semantic_engine.search(query=body.query, category=body.category, top_k=body.top_k or 4)
+    return {
+        "query": body.query,
+        "category": body.category,
+        "total": len(results),
+        "results": results
+    }
+
+@app.get("/api/mcp/tools")
+def get_mcp_tools():
+    """Retorna el manifiesto estándar de herramientas MCP expuestas por VitalCore."""
+    return {
+        "protocol": "Model Context Protocol (MCP) v1.0",
+        "server": "vitalcore-agent-mcp",
+        "tools": MCP_TOOLS_MANIFEST
+    }
+
+@app.post("/api/mcp/call")
+def call_mcp_tool_endpoint(req: MCPToolCallRequest, db: Session = Depends(get_db)):
+    """Ejecuta una herramienta bajo el estándar MCP y retorna el resultado estructurado."""
+    result = execute_mcp_tool(db, tool_name=req.tool, arguments=req.arguments or {})
+    return {
+        "status": "success" if "error" not in result else "error",
+        "tool": req.tool,
+        "result": result
+    }
+
+@app.post("/api/ai/agent-chat")
+async def ai_agent_chat(data: ChatMessage, db: Session = Depends(get_db)):
+    """
+    Asistente Agéntico de VitalCore:
+    Utiliza el servidor MCP y búsqueda semántica para responder con conocimiento profundo
+    de la base de datos viva del usuario y sus prescripciones de salud.
+    """
+    user_context = tool_get_user_biometrics(db, user_id=data.user_id)
+    msg_lower = data.message.lower()
+
+    # Inferencia de herramientas según intención del usuario
+    tool_results = {}
+    
+    # 1. ¿Búsqueda semántica de catálogo o sustituciones?
+    if any(k in msg_lower for k in ["receta", "comida", "ejercicio", "dolor", "rodilla", "hombro", "rutina", "meditacion", "estres", "insomnio", "sin lactosa", "proteina"]):
+        tool_results["semantic_search"] = tool_search_semantic(query=data.message, category="todas", limit=2)
+
+    # 2. ¿Registro rápido en lenguaje natural? (ej: "hoy comí 2100 calorías")
+    import re
+    cal_match = re.search(r"(\d{3,4})\s*(kcal|calorias|calorías)", msg_lower)
+    if cal_match:
+        cals = int(cal_match.group(1))
+        tool_results["quick_log"] = tool_record_daily_log(
+            db,
+            user_id=data.user_id,
+            calories_consumed=cals,
+            workout_done=("entren" in msg_lower or "gym" in msg_lower),
+            notes=data.message
+        )
+
+    # Construcción de respuesta contextualmente enriquecida
+    if not GEMINI_API_KEY:
+        # Fallback agéntico determinístico
+        name = user_context.get("name", "Atleta").split()[0]
+        if "quick_log" in tool_results:
+            return {
+                "reply": f"¡Excelente {name}! Registré automáticamente tus {cals} kcal de hoy en tu Dashboard. Tu plan diario objetivo es de {user_context['active_plan']['daily_calories']} kcal.",
+                "tools_used": ["record_daily_log_quick"],
+                "source": "mcp_agent_deterministic"
+            }
+        
+        if "semantic_search" in tool_results and tool_results["semantic_search"]["matches"]:
+            top = tool_results["semantic_search"]["matches"][0]
+            return {
+                "reply": f"Para tu consulta encontré '{top['title']}' ({top['type']}): {top['description']} — {top['reason']}",
+                "tools_used": ["search_catalog_semantic"],
+                "recommendation": top,
+                "source": "mcp_agent_deterministic"
+            }
+
+        # Fallback conversacional estándar
+        ctx_simple = _build_user_context(db, data.user_id)
+        return {
+            "reply": _fallback_reply(data.message, ctx_simple),
+            "tools_used": ["get_user_biometrics_and_progress"],
+            "source": "mcp_agent_deterministic"
+        }
+
+    # Llamada a Gemini con contexto inyectado de herramientas MCP
+    system_prompt = (
+        f"Eres el Asistente Agéntico de VitalCore con acceso en tiempo real a herramientas de base de datos. "
+        f"Usuario: {user_context.get('name', 'Atleta')}, Objetivo: {user_context['profile']['goal']}, "
+        f"TDEE: {user_context['profile']['tdee']} kcal, Plan: {user_context['active_plan']['daily_calories']} kcal. "
+        f"Resultados de herramientas MCP ejecutadas: {json.dumps(tool_results, ensure_ascii=False)}. "
+        f"Responde de forma personalizada, concisa y empática en español (máx 3-4 frases)."
+    )
+    
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+    payload = {
+        "contents": [{"role": "user", "parts": [{"text": data.message[:CHAT_MAX_CHARS]}]}],
+        "systemInstruction": {"parts": [{"text": system_prompt}]},
+        "generationConfig": {"maxOutputTokens": 250, "temperature": 0.5},
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            res = await client.post(url, json=payload)
+            if res.status_code == 200:
+                data_resp = res.json()
+                reply_text = data_resp["candidates"][0]["content"]["parts"][0]["text"].strip()
+                return {
+                    "reply": reply_text,
+                    "tools_used": list(tool_results.keys()) or ["get_user_biometrics_and_progress"],
+                    "source": "gemini_mcp_agent"
+                }
+    except Exception:
+        pass
+
+    # Fallback
+    ctx_simple = _build_user_context(db, data.user_id)
+    return {
+        "reply": _fallback_reply(data.message, ctx_simple),
+        "tools_used": list(tool_results.keys()),
+        "source": "fallback"
+    }
+

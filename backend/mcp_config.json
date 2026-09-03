@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "vitalcore": {
+      "command": "python",
+      "args": [
+        "c:/Users/User/Documents/Academico/UdeConcepcion/Cursos/2 Semestre/Prototipos/vitalcore/backend/mcp_server_stdio.py"
+      ],
+      "env": {
+        "PYTHONPATH": "c:/Users/User/Documents/Academico/UdeConcepcion/Cursos/2 Semestre/Prototipos/vitalcore/backend"
+      }
+    }
+  }
+}
