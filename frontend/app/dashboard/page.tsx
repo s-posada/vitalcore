@@ -10,8 +10,6 @@ import {
   TrendingUp,
   Dumbbell,
   Target,
-  Mic,
-  Ticket,
   ClipboardList,
   Save,
   CheckCircle2,
@@ -44,11 +42,10 @@ const ACTIVITY_LABELS: Record<string, string> = {
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [stats, setStats] = useState<any>(null)
-  const [events, setEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [savingLog, setSavingLog] = useState(false)
   const [toastMsg, setToastMsg] = useState('')
-  const [toastType, setToastType] = useState<'success' | 'warning' | 'lock' | 'ticket'>('success')
+  const [toastType, setToastType] = useState<'success' | 'warning' | 'lock'>('success')
   const [profile, setProfile] = useState<any>(null)
 
   // Quick log state
@@ -115,12 +112,6 @@ export default function DashboardPage() {
         }
       }
 
-      // Events
-      const evRes = await fetch(`${API}/api/community/events`)
-      if (evRes.ok) {
-        const evData = await evRes.json()
-        setEvents(evData.slice(0, 3))
-      }
     } catch (e) {
       console.error('Error fetching dashboard data:', e)
     } finally {
@@ -128,7 +119,7 @@ export default function DashboardPage() {
     }
   }
 
-  const showToast = (msg: string, type: 'success' | 'warning' | 'lock' | 'ticket' = 'success') => {
+  const showToast = (msg: string, type: 'success' | 'warning' | 'lock' = 'success') => {
     setToastMsg(msg)
     setToastType(type)
     setTimeout(() => setToastMsg(''), 3500)
@@ -165,24 +156,6 @@ export default function DashboardPage() {
     }
   }
 
-  const handleQuickRSVP = async (eventId: number) => {
-    if (!user) return
-    try {
-      const res = await fetch(`${API}/api/community/events/${eventId}/rsvp/${user.id}`, {
-        method: 'POST'
-      })
-      const data = await res.json()
-      if (res.ok) {
-        showToast('¡Lugar reservado! Enlace de Meet activado.', 'ticket')
-        loadData(user.id, user.email)
-      } else {
-        showToast(data.detail || 'Requiere upgrade de plan', 'lock')
-      }
-    } catch (e) {
-      showToast('Error de red', 'warning')
-    }
-  }
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <Navbar />
@@ -194,7 +167,6 @@ export default function DashboardPage() {
             {toastType === 'success' && <CheckCircle2 className="w-4 h-4" />}
             {toastType === 'warning' && <AlertTriangle className="w-4 h-4" />}
             {toastType === 'lock' && <Lock className="w-4 h-4" />}
-            {toastType === 'ticket' && <Ticket className="w-4 h-4" />}
             {toastMsg}
           </span>
         </div>
@@ -238,9 +210,6 @@ export default function DashboardPage() {
             <div className="mt-3 flex gap-2">
               <Link href="/pricing" className="text-xs flex-1 text-center py-2 px-3 rounded-xl bg-primary-100 text-primary-800 hover:bg-primary-200 border border-primary-200 font-semibold transition-all inline-flex items-center justify-center gap-1.5">
                 <Gem className="w-3.5 h-3.5" /> Mejorar Plan
-              </Link>
-              <Link href="/community" className="text-xs flex-1 text-center py-2 px-3 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold transition-all">
-                Eventos
               </Link>
             </div>
           </div>
@@ -395,47 +364,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Live Events Highlight */}
-            <div className="card space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <Mic className="w-4 h-4" /> Próximos Eventos & Masterminds de la Comunidad
-                  </h3>
-                  <p className="text-xs text-slate-500">Aprende y conecta con expertos en vivo</p>
-                </div>
-                <Link href="/community" className="text-xs font-semibold text-primary-700 hover:text-primary-800">
-                  Explorar Todos →
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {events.map((ev) => (
-                  <div key={ev.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-primary-300 transition-all flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-primary-50 text-primary-700 border border-primary-200">
-                          {ev.category}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          {new Date(ev.event_date).toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' })}
-                        </span>
-                      </div>
-                      <h4 className="text-xs font-bold text-slate-900 leading-snug line-clamp-2">{ev.title}</h4>
-                      <p className="text-[11px] text-slate-500 mt-1">Por {ev.speaker}</p>
-                    </div>
-
-                    <button
-                      onClick={() => handleQuickRSVP(ev.id)}
-                      className="mt-3 w-full py-1.5 px-3 rounded-xl bg-primary-100 hover:bg-primary-200 text-primary-800 text-xs font-semibold transition-colors flex items-center justify-center gap-1"
-                    >
-                      <Ticket className="w-3.5 h-3.5" />
-                      <span>Reservar Cupo ({ev.rsvps_count})</span>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
           {/* Right Col: Datos de Origen + Quick Daily Log Form */}
@@ -630,16 +558,6 @@ export default function DashboardPage() {
                 <span className="text-xs text-primary-700">Ver →</span>
               </Link>
 
-              <Link href="/meditation" className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
-                <div className="flex items-center gap-3">
-                  <Flower2 className="w-5 h-5 text-primary-700" />
-                  <div>
-                    <div className="text-xs font-bold text-slate-900">Meditación Guiada</div>
-                    <div className="text-[10px] text-slate-500">Voz interactiva en el navegador</div>
-                  </div>
-                </div>
-                <span className="text-xs text-primary-700">Ver →</span>
-              </Link>
             </div>
           </div>
         </div>

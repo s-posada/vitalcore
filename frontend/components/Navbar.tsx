@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Salad, Dumbbell, Flower2, Users, Gem, ShieldCheck, Settings, Crown, BookOpen, Sparkles } from 'lucide-react'
+import { LayoutDashboard, Salad, Dumbbell, Gem, ShieldCheck, Settings, Crown } from 'lucide-react'
 import { avatarUrl } from '@/lib/avatar'
 
 export default function Navbar() {
@@ -98,15 +98,14 @@ export default function Navbar() {
     }
   }, [])
 
+  // Pestañas visibles en el header principal.
+  // Meditación, Comunidad, Trabajo 02 e Historias T01 se eliminaron definitivamente
+  // del proyecto (páginas y rutas ya no existen). Planes vuelve a estar visible.
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/nutrition', label: 'Nutrición', icon: Salad },
     { href: '/workout', label: 'Entrenamiento', icon: Dumbbell },
-    { href: '/meditation', label: 'Meditación', icon: Flower2 },
-    { href: '/community', label: 'Comunidad', icon: Users },
     { href: '/pricing', label: 'Planes', icon: Gem },
-    { href: '/trabajo02', label: 'Trabajo 02', icon: Sparkles },
-    { href: '/historias', label: 'Historias T01', icon: BookOpen },
   ]
 
   const handleSwitchUser = (demoUser: any) => {

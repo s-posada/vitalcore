@@ -52,7 +52,6 @@ export default function LandingPage() {
 
         <div className="hidden md:flex items-center gap-6 text-sm text-slate-600">
           <Link href="/pricing" className="hover:text-slate-900 transition-colors">Precios</Link>
-          <Link href="/community" className="hover:text-slate-900 transition-colors">Comunidad</Link>
           <Link href="#equipo" className="hover:text-slate-900 transition-colors">Equipo</Link>
         </div>
 
