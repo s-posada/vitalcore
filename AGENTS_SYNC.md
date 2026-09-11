@@ -29,7 +29,7 @@ Cada vez que un agente (Claude, Gemini, Codex, Antigravity) o desarrollador comi
 | **Poblado de Datos** | [backend/seed.py](backend/seed.py) | Datos de fundadores, 50 ítems de catálogo (`CATALOG_SEED`) con embeddings idempotentes. |
 | **Registro de Motor** | [backend/engine_registry.py](backend/engine_registry.py) | Singleton desacoplado (`get_engine`, `set_engine`) para evitar imports circulares. |
 | **Búsqueda Semántica**| [backend/semantic_engine.py](backend/semantic_engine.py) | Embeddings Gemini `text-embedding-004` (768d) y vector denso normalizado sin diacríticos. |
-| **Agente Autónomo** | [backend/agent.py](backend/agent.py) | Agente LangChain desacoplado con 4 herramientas (`get_user_biometrics`, `search_catalog`, etc.). |
+| **Agente Autónomo** | [backend/agent.py](backend/agent.py) | Agente LangChain desacoplado con 5 herramientas (`get_user_biometrics`, `search_catalog`, `generate_nutrition_plan`, `record_daily_log`, `update_user_profile`). |
 | **Servidor MCP** | [backend/mcp_server.py](backend/mcp_server.py) | Herramientas MCP estándar expuestas tanto en API como en stdio y SSE. |
 | **Config MCP** | [backend/mcp_config.json](backend/mcp_config.json) | Manifiesto de conectores MCP locales y remotos (`vitalcore-remote` en Render). |
 | **Suite de Pruebas** | [backend/test_specs_suite.py](backend/test_specs_suite.py) | 17 pruebas automatizadas de especificación, seguridad y validación. |
@@ -56,7 +56,9 @@ Cada vez que un agente (Claude, Gemini, Codex, Antigravity) o desarrollador comi
 > 3. En la sección **Vercel Authentication**, cambia la opción a **Disabled** y guarda los cambios.
 > A partir de ese momento, la URL `https://frontend-s-posada.vercel.app` cargará de inmediato para cualquier usuario o agente sin solicitar inicio de sesión en Vercel.
 >
-> **Verificado 2026-09-11 04:15 (Claude):** confirmado vía WebFetch que `frontend-s-posada.vercel.app` y `frontend-n9zmm5uk4-s-posada.vercel.app` (deploy del commit `510fe9a`, status "Ready"/"Latest" en el dashboard) siguen redirigiendo (302) a `vercel.com/sso-api`. **Sigue pendiente que alguien con acceso admin al proyecto Vercel desactive "Vercel Authentication" en Deployment Protection.** No reintentar el diagnóstico — solo verificar si ya se desactivó y actualizar esta línea con la fecha.
+> **Verificado 2026-09-11 04:15 (Claude):** confirmado vía WebFetch que `frontend-s-posada.vercel.app` y `frontend-n9zmm5uk4-s-posada.vercel.app` (deploy del commit `510fe9a`, status "Ready"/"Latest" en el dashboard) siguen redirigiendo (302) a `vercel.com/sso-api`.
+>
+> **RESUELTO 2026-09-11 04:25 (Sebastián + Claude):** se desactivó "Require Log In" en Vercel Authentication. `https://frontend-s-posada.vercel.app` es público y carga la landing correctamente. No repetir este diagnóstico.
 
 ---
 
@@ -81,6 +83,7 @@ Cada vez que un agente (Claude, Gemini, Codex, Antigravity) o desarrollador comi
 | **2026-09-11 00:58** | Codex | `feat/specs-01-02-03` | Auditoría integral: sesión admin firmada, validación, lifespan FastAPI, tipado frontend, Next.js 16 sin vulnerabilidades, CI, Docker y documentación profesional. |
 | **2026-09-11 01:12** | Antigravity | `feat/specs-01-02-03` | Identificación y registro de dominios de Vercel (`frontend-s-posada.vercel.app`), diagnóstico de SSO y guía para desactivar Deployment Protection. |
 | **2026-09-11 04:15** | Claude (Sonnet 5) | `main` | Merge fast-forward de `feat/specs-01-02-03` → `main` y push a `origin/main`. Confirmado deploy LIVE en Render para `vitalcore-api` y `vitalcore` (backend duplicado, mismo commit `510fe9a`). Confirmado (WebFetch) que el frontend Vercel sigue con SSO activo — no está resuelto, solo verificado que persiste. Aviso a los compañeros pendiente de enviar hasta que se desactive el SSO. |
+| **2026-09-11 04:30** | Claude (Sonnet 5) | `main` | SSO de Vercel desactivado por Sebastián, frontend ya público. Detectado y corregido: el agente del chat (`agent.py`/`mcp_server.py`) no tenía herramienta para modificar el perfil del usuario (peso, meta, altura, nivel de actividad) — solo podía leer datos y registrar calorías, por eso ignoraba pedidos como "guarda mi peso". Se agregó `update_user_profile` (con recálculo automático de IMC/TDEE y validación de rango fisiológico 20-400 kg / 100-250 cm) y se extendió `record_daily_log` para aceptar `weight_kg`. Se reforzó el system prompt para que el agente llame herramientas de forma obligatoria ante cualquier dato nuevo del usuario, en vez de solo dar consejo genérico. 17/17 tests pasando localmente. Commit `<pendiente al pushear>`. |
 
 ---
 

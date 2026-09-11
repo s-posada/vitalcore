@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from database import User, UserProfile, NutritionPlan, DailyLog
 from engine_registry import get_engine
-from mcp_server import tool_get_user_biometrics, tool_record_daily_log
+from mcp_server import tool_get_user_biometrics, tool_record_daily_log, tool_update_user_profile
 
 # Configuración autónoma desde el entorno
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
@@ -161,23 +161,46 @@ def run_agent(db: Session, user_id: int, message: str) -> Dict[str, Any]:
         return json.dumps(res, ensure_ascii=False)
 
     @tool
-    def record_daily_log(calories: int, workout_done: bool = False, water_ml: int = 2000, notes: str = "") -> str:
-        """Registra la ingesta calórica y actividad física del día de hoy en la base de datos."""
+    def record_daily_log(calories: int, workout_done: bool = False, water_ml: int = 2000, notes: str = "", weight_kg: Optional[float] = None) -> str:
+        """Registra la ingesta calórica y actividad física del día de hoy en la base de datos. Si el usuario menciona su peso, pásalo en weight_kg para dejarlo guardado también en su perfil."""
         tools_used.append("record_daily_log")
-        res = tool_record_daily_log(db, user_id, calories_consumed=calories, workout_done=workout_done, water_ml=water_ml, notes=notes)
+        res = tool_record_daily_log(db, user_id, calories_consumed=calories, workout_done=workout_done, water_ml=water_ml, notes=notes, weight_kg=weight_kg)
         return json.dumps(res, ensure_ascii=False)
 
-    tools = [get_user_biometrics, search_catalog, generate_nutrition_plan, record_daily_log]
+    @tool
+    def update_user_profile(
+        weight_kg: Optional[float] = None,
+        target_weight_kg: Optional[float] = None,
+        goal: Optional[str] = None,
+        activity_level: Optional[str] = None,
+        height_cm: Optional[float] = None,
+    ) -> str:
+        """Actualiza el perfil del usuario (peso, meta, altura, nivel de actividad) cuando el usuario lo informe en el chat, y recalcula IMC/TDEE automáticamente. Úsala siempre que el usuario diga su peso actual o quiera cambiar su meta."""
+        tools_used.append("update_user_profile")
+        res = tool_update_user_profile(
+            db, user_id,
+            weight_kg=weight_kg, target_weight_kg=target_weight_kg,
+            goal=goal, activity_level=activity_level, height_cm=height_cm
+        )
+        return json.dumps(res, ensure_ascii=False)
+
+    tools = [get_user_biometrics, search_catalog, generate_nutrition_plan, record_daily_log, update_user_profile]
     tools_map = {t.name: t for t in tools}
 
     system_prompt = (
         "Eres el Asistente Inteligente de VitalCore, un coach de salud y bienestar de élite. "
-        "Tienes acceso a 4 herramientas para ayudar al usuario de forma proactiva:\n"
+        "Tu trabajo es que el usuario pueda manejar TODA la app conversando contigo, sin tener que tocar los formularios manualmente. "
+        "Tienes acceso a 5 herramientas y DEBES usarlas de forma activa y proactiva, no solo dar consejos genéricos:\n"
         "1. get_user_biometrics: consulta peso, TDEE, IMC y progreso.\n"
         "2. search_catalog: busca recetas, ejercicios o meditaciones adecuadas para sus síntomas o metas.\n"
         "3. generate_nutrition_plan: crea y guarda un plan nutricional adaptado a su perfil si lo solicita.\n"
-        "4. record_daily_log: registra calorías y entrenamientos en la base de datos.\n"
-        "Sé conciso, empático, profesional y científico. Basa siempre tus respuestas en los datos del usuario."
+        "4. record_daily_log: registra calorías, agua, entrenamiento y peso del día de hoy.\n"
+        "5. update_user_profile: actualiza peso, peso objetivo, meta, altura o nivel de actividad del usuario.\n\n"
+        "Reglas obligatorias:\n"
+        "- Si el usuario menciona un dato nuevo sobre sí mismo (peso, meta, cuánto comió, si entrenó), DEBES llamar a la herramienta correspondiente en el mismo turno para guardarlo. Nunca digas 'lo guardé' o 'listo' sin haber llamado realmente a la herramienta.\n"
+        "- Si un dato parece un error de tipeo o fisiológicamente imposible (ej. un peso humano de cientos o miles de kg), NO lo guardes: pide confirmación o corrección antes de llamar a la herramienta.\n"
+        "- Después de ejecutar una herramienta con éxito, confirma explícitamente qué quedó guardado (con el valor exacto) para que el usuario sepa que la app se actualizó.\n"
+        "- Sé conciso, empático, profesional y científico. Basa siempre tus respuestas en los datos reales del usuario obtenidos de las herramientas, no inventes cifras."
     )
 
     try:

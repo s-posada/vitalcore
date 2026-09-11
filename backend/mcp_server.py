@@ -12,6 +12,12 @@ from database import User, UserProfile, NutritionPlan, WorkoutPlan, DailyLog
 from engine_registry import get_engine
 from datetime import datetime, UTC
 
+# Rangos fisiológicos plausibles para validar entradas del usuario/agente
+MIN_WEIGHT_KG = 20.0
+MAX_WEIGHT_KG = 400.0
+MIN_HEIGHT_CM = 100.0
+MAX_HEIGHT_CM = 250.0
+
 # ── DEFINICIÓN DE HERRAMIENTAS MCP (MANIFEST) ──────────────────────────────────
 MCP_TOOLS_MANIFEST = [
     {
@@ -52,6 +58,41 @@ MCP_TOOLS_MANIFEST = [
         }
     },
     {
+        "name": "update_user_profile",
+        "description": "Actualiza el perfil biométrico del usuario (peso, meta, altura, nivel de actividad) cuando lo informa en el chat. Recalcula IMC y TDEE automáticamente. Usar SIEMPRE que el usuario diga su peso actual, cambie de meta o de nivel de actividad.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "user_id": {
+                    "type": "integer",
+                    "description": "ID del usuario"
+                },
+                "weight_kg": {
+                    "type": "number",
+                    "description": "Peso actual en kilogramos (rango válido 20-400 kg)"
+                },
+                "target_weight_kg": {
+                    "type": "number",
+                    "description": "Peso objetivo en kilogramos"
+                },
+                "goal": {
+                    "type": "string",
+                    "enum": ["gain_muscle", "lose_fat", "maintain", "improve_endurance", "improve_flexibility"],
+                    "description": "Meta principal del usuario"
+                },
+                "activity_level": {
+                    "type": "string",
+                    "description": "Nivel de actividad física (sedentary, light, moderate, active, very_active)"
+                },
+                "height_cm": {
+                    "type": "number",
+                    "description": "Altura en centímetros (rango válido 100-250 cm)"
+                }
+            },
+            "required": ["user_id"]
+        }
+    },
+    {
         "name": "record_daily_log_quick",
         "description": "Registra una entrada de telemetría diaria para el usuario cuando este informa en el chat lo que comió o entrenó.",
         "parameters": {
@@ -76,6 +117,10 @@ MCP_TOOLS_MANIFEST = [
                 "notes": {
                     "type": "string",
                     "description": "Notas o resumen de la comida y sensación del usuario"
+                },
+                "weight_kg": {
+                    "type": "number",
+                    "description": "Peso registrado hoy en kilogramos, si el usuario lo menciona (rango válido 20-400 kg)"
                 }
             },
             "required": ["user_id", "calories_consumed"]
@@ -157,10 +202,85 @@ def tool_search_semantic(query: str, category: Optional[str] = "todas", limit: i
     }
 
 
-def tool_record_daily_log(db: Session, user_id: int, calories_consumed: int, workout_done: bool = False, water_ml: int = 2000, notes: str = "") -> Dict[str, Any]:
+def tool_update_user_profile(
+    db: Session,
+    user_id: int,
+    weight_kg: Optional[float] = None,
+    target_weight_kg: Optional[float] = None,
+    goal: Optional[str] = None,
+    activity_level: Optional[str] = None,
+    height_cm: Optional[float] = None,
+) -> Dict[str, Any]:
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         return {"error": f"Usuario {user_id} no existe."}
+
+    profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
+    if not profile:
+        profile = UserProfile(user_id=user_id)
+        db.add(profile)
+
+    if weight_kg is not None:
+        if not (MIN_WEIGHT_KG <= weight_kg <= MAX_WEIGHT_KG):
+            return {"error": f"Peso {weight_kg} kg fuera de rango válido ({MIN_WEIGHT_KG}-{MAX_WEIGHT_KG} kg). Confirma el dato con el usuario antes de guardar."}
+        profile.weight_kg = weight_kg
+
+    if target_weight_kg is not None:
+        if not (MIN_WEIGHT_KG <= target_weight_kg <= MAX_WEIGHT_KG):
+            return {"error": f"Peso objetivo {target_weight_kg} kg fuera de rango válido ({MIN_WEIGHT_KG}-{MAX_WEIGHT_KG} kg)."}
+        profile.target_weight_kg = target_weight_kg
+
+    if height_cm is not None:
+        if not (MIN_HEIGHT_CM <= height_cm <= MAX_HEIGHT_CM):
+            return {"error": f"Altura {height_cm} cm fuera de rango válido ({MIN_HEIGHT_CM}-{MAX_HEIGHT_CM} cm)."}
+        profile.height_cm = height_cm
+
+    if goal is not None:
+        profile.goal = goal
+
+    if activity_level is not None:
+        profile.activity_level = activity_level
+
+    # Recalcular IMC si hay peso y altura disponibles
+    if profile.weight_kg and profile.height_cm:
+        height_m = profile.height_cm / 100.0
+        profile.imc = round(profile.weight_kg / (height_m ** 2), 1)
+
+    # Recalcular TDEE (Mifflin-St Jeor simplificado) si hay peso, altura y edad
+    activity_factors = {
+        "sedentary": 1.2, "light": 1.375, "moderate": 1.55,
+        "active": 1.725, "very_active": 1.9
+    }
+    if profile.weight_kg and profile.height_cm and profile.age:
+        bmr = (10 * profile.weight_kg) + (6.25 * profile.height_cm) - (5 * profile.age) + 5
+        factor = activity_factors.get(profile.activity_level, 1.55)
+        profile.tdee = int(bmr * factor)
+
+    db.commit()
+    db.refresh(profile)
+
+    return {
+        "success": True,
+        "message": "Perfil actualizado correctamente.",
+        "profile": {
+            "weight_kg": profile.weight_kg,
+            "target_weight_kg": profile.target_weight_kg,
+            "goal": profile.goal,
+            "activity_level": profile.activity_level,
+            "height_cm": profile.height_cm,
+            "imc": profile.imc,
+            "tdee": profile.tdee
+        }
+    }
+
+
+def tool_record_daily_log(db: Session, user_id: int, calories_consumed: int, workout_done: bool = False, water_ml: int = 2000, notes: str = "", weight_kg: Optional[float] = None) -> Dict[str, Any]:
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return {"error": f"Usuario {user_id} no existe."}
+
+    if weight_kg is not None and not (MIN_WEIGHT_KG <= weight_kg <= MAX_WEIGHT_KG):
+        return {"error": f"Peso {weight_kg} kg fuera de rango válido ({MIN_WEIGHT_KG}-{MAX_WEIGHT_KG} kg). Confirma el dato con el usuario antes de guardar."}
 
     today_str = datetime.now(UTC).strftime("%Y-%m-%d")
     existing_log = db.query(DailyLog).filter(DailyLog.user_id == user_id, DailyLog.date == today_str).first()
@@ -170,6 +290,10 @@ def tool_record_daily_log(db: Session, user_id: int, calories_consumed: int, wor
     est_carbs = round((calories_consumed * 0.50) / 4.0, 1)
     est_fat = round((calories_consumed * 0.25) / 9.0, 1)
 
+    # Si el usuario menciona su peso, se actualiza también el perfil (fuente de verdad para IMC/TDEE)
+    if weight_kg is not None:
+        tool_update_user_profile(db, user_id, weight_kg=weight_kg)
+
     if existing_log:
         existing_log.calories_consumed = calories_consumed
         existing_log.protein_consumed = est_protein
@@ -177,6 +301,8 @@ def tool_record_daily_log(db: Session, user_id: int, calories_consumed: int, wor
         existing_log.fat_consumed = est_fat
         existing_log.workout_done = workout_done
         existing_log.water_ml = water_ml
+        if weight_kg is not None:
+            existing_log.weight_kg = weight_kg
         db.commit()
         return {"success": True, "action": "updated", "date": today_str, "calories": calories_consumed, "note": "Log actualizado correctamente."}
     else:
@@ -187,6 +313,7 @@ def tool_record_daily_log(db: Session, user_id: int, calories_consumed: int, wor
             protein_consumed=est_protein,
             carbs_consumed=est_carbs,
             fat_consumed=est_fat,
+            weight_kg=weight_kg,
             workout_done=workout_done,
             meditation_done=False,
             water_ml=water_ml,
@@ -214,7 +341,18 @@ def execute_mcp_tool(db: Session, tool_name: str, arguments: Dict[str, Any]) -> 
             calories_consumed=arguments.get("calories_consumed", 2000),
             workout_done=arguments.get("workout_done", False),
             water_ml=arguments.get("water_ml", 2000),
-            notes=arguments.get("notes", "")
+            notes=arguments.get("notes", ""),
+            weight_kg=arguments.get("weight_kg")
+        )
+    elif tool_name == "update_user_profile":
+        return tool_update_user_profile(
+            db,
+            user_id=arguments.get("user_id", 1),
+            weight_kg=arguments.get("weight_kg"),
+            target_weight_kg=arguments.get("target_weight_kg"),
+            goal=arguments.get("goal"),
+            activity_level=arguments.get("activity_level"),
+            height_cm=arguments.get("height_cm")
         )
     else:
         return {"error": f"Herramienta MCP '{tool_name}' no reconocida."}
