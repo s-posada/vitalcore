@@ -23,7 +23,7 @@ from mcp_server import tool_get_user_biometrics, tool_record_daily_log, tool_upd
 
 # Configuración autónoma desde el entorno
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
 
 def generate_nutrition_plan_for_user(db: Session, user_id: int) -> Dict[str, Any]:
