@@ -36,6 +36,28 @@ Cada vez que un agente (Claude, Gemini, Codex, Antigravity) o desarrollador comi
 
 ---
 
+## 2.1. Entornos de Despliegue y URLs Públicas
+
+| Entorno | Servicio | URL / Dominio | Estado / Observación |
+| :--- | :--- | :--- | :--- |
+| **Frontend (Producción)** | Vercel | [`https://frontend-s-posada.vercel.app`](https://frontend-s-posada.vercel.app) | Dominio oficial de producción vinculado al proyecto `frontend` (`team_a0AMj9ELWiw8h5KxgQHMPdiH`). |
+| **Frontend (Deploy commit 510fe9a)** | Vercel | [`https://frontend-n9zmm5uk4-s-posada.vercel.app`](https://frontend-n9zmm5uk4-s-posada.vercel.app) | Último preview/deploy registrado en Vercel. |
+| **Backend API (Producción)** | Render | [`https://vitalcore-api.onrender.com`](https://vitalcore-api.onrender.com) | Servicio backend FastAPI principal. |
+| **WebMCP SSE (Producción)** | Render | [`https://vitalcore-api.onrender.com/mcp/sse`](https://vitalcore-api.onrender.com/mcp/sse) | Stream de Server-Sent Events con ping de 15s. |
+| **Frontend (Local)** | Localhost | `http://localhost:3000` | Ejecutar `npm run dev` dentro de la carpeta `frontend/`. |
+| **Backend (Local)** | Localhost | `http://localhost:8000` | Ejecutar `uvicorn main:app --reload` en `backend/`. |
+
+> [!IMPORTANT]
+> **Acceso al Frontend en Vercel (Deployment Protection / SSO):**
+> Al ingresar a `https://frontend-s-posada.vercel.app`, Vercel redirige (302) a `https://vercel.com/sso-api` debido a que el proyecto en Vercel tiene activada la protección por defecto **"Deployment Protection" -> "Vercel Authentication"**.
+> **Pasos para dejar el frontend 100% público:**
+> 1. Entra a [Vercel Dashboard](https://vercel.com) → Proyecto `frontend` (`s-posada`).
+> 2. Ve a **Settings** → **Deployment Protection**.
+> 3. En la sección **Vercel Authentication**, cambia la opción a **Disabled** y guarda los cambios.
+> A partir de ese momento, la URL `https://frontend-s-posada.vercel.app` cargará de inmediato para cualquier usuario o agente sin solicitar inicio de sesión en Vercel.
+
+---
+
 ## 3. Estado Actual del Sistema
 
 - **SPEC-01 (Persistencia del Catálogo):** Completada. 50 ítems en SQLite (`catalog_items`), embeddings preservados, motor desacoplado vía registro.
@@ -55,6 +77,7 @@ Cada vez que un agente (Claude, Gemini, Codex, Antigravity) o desarrollador comi
 | **2026-09-10 22:50** | Andy (AndresBurboa) | `fix/borrar-headers` | Commit `260c9c3` con ajustes de cabeceras de frontend/backend. |
 | **2026-09-10 23:45** | Antigravity | `feat/specs-01-02-03` | Creación de `AGENTS_SYNC.md` como fuente única de verdad para el equipo (Usuario, Claude, Gemini, Codex). |
 | **2026-09-11 00:58** | Codex | `feat/specs-01-02-03` | Auditoría integral: sesión admin firmada, validación, lifespan FastAPI, tipado frontend, Next.js 16 sin vulnerabilidades, CI, Docker y documentación profesional. |
+| **2026-09-11 01:12** | Antigravity | `feat/specs-01-02-03` | Identificación y registro de dominios de Vercel (`frontend-s-posada.vercel.app`), diagnóstico de SSO y guía para desactivar Deployment Protection. |
 
 ---
 
