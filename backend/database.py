@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Boolean, Text, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Boolean, Text, ForeignKey, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime, timedelta
@@ -9,6 +9,28 @@ DATABASE_URL = "sqlite:////app/data/vitalcore.db" if os.path.exists("/app/data")
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+class CatalogItem(Base):
+    __tablename__ = "catalog_items"
+    id = Column(String, primary_key=True, index=True)
+    category = Column(String, nullable=False, index=True) # nutricion, entrenamiento, meditacion
+    title = Column(String, nullable=False)
+    type = Column(String, nullable=False)
+    tags = Column(JSON, default=list)
+    description = Column(Text, nullable=False)
+    joint_friendly = Column(Boolean, default=False)
+    calories = Column(Integer, nullable=True)
+    protein_g = Column(Float, nullable=True)
+    carbs_g = Column(Float, nullable=True)
+    fat_g = Column(Float, nullable=True)
+    target_muscles = Column(JSON, default=list, nullable=True)
+    impact_level = Column(String, nullable=True)
+    duration_min = Column(Integer, nullable=True)
+    prep_time_min = Column(Integer, nullable=True)
+    difficulty = Column(String, nullable=True)
+    embedding_json = Column(Text, nullable=True) # Vector de 768 dimensiones serializado como JSON
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 
 class User(Base):
     __tablename__ = "users"

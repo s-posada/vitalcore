@@ -9,7 +9,7 @@ semánticas vectoriales y registrar telemetría de forma autónoma con Function 
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 from database import User, UserProfile, NutritionPlan, WorkoutPlan, DailyLog
-from semantic_engine import semantic_engine
+from engine_registry import get_engine
 from datetime import datetime
 
 # ── DEFINICIÓN DE HERRAMIENTAS MCP (MANIFEST) ──────────────────────────────────
@@ -130,7 +130,8 @@ def tool_get_user_biometrics(db: Session, user_id: int) -> Dict[str, Any]:
 
 
 def tool_search_semantic(query: str, category: Optional[str] = "todas", limit: int = 3) -> Dict[str, Any]:
-    results = semantic_engine.search(query, category=category, top_k=limit)
+    engine = get_engine()
+    results = engine.search(query, category=category, top_k=limit) if engine else []
     return {
         "query": query,
         "category_filter": category,

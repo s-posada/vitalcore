@@ -1,21 +1,23 @@
-import os, json, random, time
+import os, json, random, time, asyncio
 import httpx
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import (
-    get_db, create_tables, User, UserProfile, NutritionPlan,
-    WorkoutPlan, DailyLog, Post, EventRSVP
+    get_db, SessionLocal, create_tables, User, UserProfile, NutritionPlan,
+    WorkoutPlan, DailyLog, Post, EventRSVP, CatalogItem
 )
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 
-from semantic_engine import semantic_engine
+from semantic_engine import VectorSearchEngine
+from engine_registry import set_engine, get_engine
+from sse_starlette.sse import EventSourceResponse
 from mcp_server import MCP_TOOLS_MANIFEST, execute_mcp_tool, tool_get_user_biometrics, tool_search_semantic, tool_record_daily_log
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-GEMINI_MODEL = "gemini-3.5-flash-lite"
+GEMINI_MODEL = "gemini-1.5-flash"
 
 # ── Chat: límites anti-abuso (en memoria, suficiente para un solo proceso) ──────
 CHAT_RATE_WINDOW_SEC = 60
@@ -37,7 +39,22 @@ app = FastAPI(
     description="Backend de alto rendimiento para Nutrición, Entrenamiento, Meditación y Comunidad"
 )
 
-# CORS restringido: solo los orígenes del frontend (configurable por entorno)
+@app.on_event("startup")
+def startup():
+    """SPEC-01: Inicializa tablas, seed de catálogo en SQLite y recarga el motor semántico."""
+    create_tables()
+    db = SessionLocal()
+    try:
+        from seed import seed, seed_catalog
+        seed()
+        seed_catalog(db)
+        engine = VectorSearchEngine()
+        engine.reload(db)
+        set_engine(engine)
+    finally:
+        db.close()
+
+# CORS restringido: orígenes locales + regex combinado para Vercel, Anthropic y Claude.ai (SPEC-03)
 ALLOWED_ORIGINS = [
     o.strip() for o in os.getenv(
         "ALLOWED_ORIGINS",
@@ -48,8 +65,7 @@ ALLOWED_ORIGINS = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    # Vercel asigna una URL nueva en cada despliegue: se aceptan todos sus subdominios
-    allow_origin_regex=r"https://[a-z0-9-]+\.vercel\.app",
+    allow_origin_regex=r"^https://([a-z0-9-]+\.vercel\.app|[a-z0-9-]+\.anthropic\.com|claude\.ai)$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -734,9 +750,17 @@ class MCPToolCallRequest(BaseModel):
 @app.get("/api/search/semantic")
 def search_semantic_get(q: str, category: Optional[str] = "todas", top_k: Optional[int] = 4):
     """Búsqueda semántica vectorial sobre nutrición, ejercicios y meditaciones."""
-    if not q or not q.strip():
-        return {"query": "", "total": 0, "results": []}
-    results = semantic_engine.search(query=q, category=category, top_k=top_k)
+    engine = get_engine()
+    if not engine:
+        db_init = SessionLocal()
+        try:
+            engine = VectorSearchEngine()
+            engine.reload(db_init)
+            set_engine(engine)
+        finally:
+            db_init.close()
+
+    results = engine.search(query=q, category=category, top_k=top_k) if engine else []
     return {
         "query": q,
         "category": category,
@@ -747,7 +771,8 @@ def search_semantic_get(q: str, category: Optional[str] = "todas", top_k: Option
 @app.post("/api/search/semantic")
 def search_semantic_post(body: SemanticSearchBody):
     """Búsqueda semántica vectorial vía POST para clientes frontend."""
-    results = semantic_engine.search(query=body.query, category=body.category, top_k=body.top_k or 4)
+    engine = get_engine()
+    results = engine.search(query=body.query, category=body.category, top_k=body.top_k or 4) if engine else []
     return {
         "query": body.query,
         "category": body.category,
@@ -774,99 +799,137 @@ def call_mcp_tool_endpoint(req: MCPToolCallRequest, db: Session = Depends(get_db
         "result": result
     }
 
+@app.get("/mcp/sse")
+async def mcp_sse_endpoint():
+    """
+    SPEC-03: WebMCP sobre Server-Sent Events (SSE) para agentes remotos (Claude.ai).
+    Protocolo MCP versión 2024-11-05 con ping cada 15s para evitar timeout de 30s en Render.
+    """
+    async def event_generator():
+        # Evento 1: Handshake de protocolo e inicialización
+        init_data = {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {
+                "tools": {"listChanged": False}
+            },
+            "serverInfo": {
+                "name": "vitalcore-agent-mcp",
+                "version": "2.0.0",
+                "description": "Servidor MCP remoto de VitalCore para entrenamiento, nutrición y catálogo semántico"
+            }
+        }
+        yield {
+            "event": "endpoint",
+            "data": json.dumps(init_data)
+        }
+
+        # Evento 2: Manifiesto expandido de herramientas (SPEC-02 tools + MCP tools)
+        agent_tools = [
+            {
+                "name": "get_user_biometrics",
+                "description": "Obtiene los datos biométricos actuales del usuario (peso, altura, IMC, TDEE, objetivo) y registros recientes.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "user_id": {"type": "integer", "description": "ID del usuario en VitalCore"}
+                    },
+                    "required": ["user_id"]
+                }
+            },
+            {
+                "name": "search_catalog_semantic",
+                "description": "Búsqueda semántica vectorial en el catálogo de VitalCore (50 ítems de nutrición, ejercicio y meditación) con embeddings reales.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "description": "Consulta en lenguaje natural"},
+                        "category": {
+                            "type": "string",
+                            "enum": ["todas", "nutricion", "entrenamiento", "meditacion"],
+                            "description": "Filtro opcional de categoría"
+                        }
+                    },
+                    "required": ["query"]
+                }
+            },
+            {
+                "name": "generate_nutrition_plan",
+                "description": "Genera un plan nutricional personalizado con Gemini usando el perfil guardado del usuario y lo persiste en la BD.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "user_id": {"type": "integer", "description": "ID del usuario"}
+                    },
+                    "required": ["user_id"]
+                }
+            },
+            {
+                "name": "record_daily_log",
+                "description": "Registra el consumo calórico y actividad física del día de hoy en la base de datos.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "user_id": {"type": "integer", "description": "ID del usuario"},
+                        "calories": {"type": "integer", "description": "Calorías consumidas"},
+                        "workout_done": {"type": "boolean", "description": "Si completó entrenamiento hoy"},
+                        "water_ml": {"type": "integer", "description": "Mililitros de agua"},
+                        "notes": {"type": "string", "description": "Notas opcionales"}
+                    },
+                    "required": ["user_id", "calories"]
+                }
+            }
+        ]
+        yield {
+            "event": "tools",
+            "data": json.dumps({"tools": agent_tools}, ensure_ascii=False)
+        }
+
+        # Evento recurrente: Ping cada 15 segundos para mantener viva la conexión en Render
+        while True:
+            await asyncio.sleep(15)
+            yield {
+                "event": "ping",
+                "data": json.dumps({"timestamp": datetime.utcnow().isoformat()})
+            }
+
+    return EventSourceResponse(event_generator())
+
 @app.post("/api/ai/agent-chat")
 async def ai_agent_chat(data: ChatMessage, db: Session = Depends(get_db)):
     """
-    Asistente Agéntico de VitalCore:
-    Utiliza el servidor MCP y búsqueda semántica para responder con conocimiento profundo
-    de la base de datos viva del usuario y sus prescripciones de salud.
+    SPEC-02: Endpoint del Agente Autónomo LangChain.
+    Rate limiting estricto (8 msgs / 60s) en primera línea, delegación a agent.py con GEMINI_API_KEY
+    o fallback determinista con perfil real de usuario.
     """
-    user_context = tool_get_user_biometrics(db, user_id=data.user_id)
-    msg_lower = data.message.lower()
+    # 1. Rate limiting estricto como primera línea
+    if _chat_rate_limited(data.user_id):
+        return {
+            "reply": "Has alcanzado el límite de 8 mensajes por minuto. Por favor, espera unos momentos.",
+            "source": "ratelimit",
+            "tools_used": []
+        }
 
-    # Inferencia de herramientas según intención del usuario
-    tool_results = {}
-    
-    # 1. ¿Búsqueda semántica de catálogo o sustituciones?
-    if any(k in msg_lower for k in ["receta", "comida", "ejercicio", "dolor", "rodilla", "hombro", "rutina", "meditacion", "estres", "insomnio", "sin lactosa", "proteina"]):
-        tool_results["semantic_search"] = tool_search_semantic(query=data.message, category="todas", limit=2)
-
-    # 2. ¿Registro rápido en lenguaje natural? (ej: "hoy comí 2100 calorías")
-    import re
-    cal_match = re.search(r"(\d{3,4})\s*(kcal|calorias|calorías)", msg_lower)
-    if cal_match:
-        cals = int(cal_match.group(1))
-        tool_results["quick_log"] = tool_record_daily_log(
-            db,
-            user_id=data.user_id,
-            calories_consumed=cals,
-            workout_done=("entren" in msg_lower or "gym" in msg_lower),
-            notes=data.message
-        )
-
-    # Construcción de respuesta contextualmente enriquecida
+    # 2. Si no hay GEMINI_API_KEY configurada, fallback determinista
     if not GEMINI_API_KEY:
-        # Fallback agéntico determinístico
-        name = user_context.get("name", "Atleta").split()[0]
-        if "quick_log" in tool_results:
-            return {
-                "reply": f"¡Excelente {name}! Registré automáticamente tus {cals} kcal de hoy en tu Dashboard. Tu plan diario objetivo es de {user_context['active_plan']['daily_calories']} kcal.",
-                "tools_used": ["record_daily_log_quick"],
-                "source": "mcp_agent_deterministic"
-            }
-        
-        if "semantic_search" in tool_results and tool_results["semantic_search"]["matches"]:
-            top = tool_results["semantic_search"]["matches"][0]
-            return {
-                "reply": f"Para tu consulta encontré '{top['title']}' ({top['type']}): {top['description']} — {top['reason']}",
-                "tools_used": ["search_catalog_semantic"],
-                "recommendation": top,
-                "source": "mcp_agent_deterministic"
-            }
-
-        # Fallback conversacional estándar
         ctx_simple = _build_user_context(db, data.user_id)
         return {
             "reply": _fallback_reply(data.message, ctx_simple),
-            "tools_used": ["get_user_biometrics_and_progress"],
-            "source": "mcp_agent_deterministic"
+            "source": "fallback",
+            "tools_used": []
         }
 
-    # Llamada a Gemini con contexto inyectado de herramientas MCP
-    system_prompt = (
-        f"Eres el Asistente Agéntico de VitalCore con acceso en tiempo real a herramientas de base de datos. "
-        f"Usuario: {user_context.get('name', 'Atleta')}, Objetivo: {user_context['profile']['goal']}, "
-        f"TDEE: {user_context['profile']['tdee']} kcal, Plan: {user_context['active_plan']['daily_calories']} kcal. "
-        f"Resultados de herramientas MCP ejecutadas: {json.dumps(tool_results, ensure_ascii=False)}. "
-        f"Responde de forma personalizada, concisa y empática en español (máx 3-4 frases)."
-    )
-    
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
-    payload = {
-        "contents": [{"role": "user", "parts": [{"text": data.message[:CHAT_MAX_CHARS]}]}],
-        "systemInstruction": {"parts": [{"text": system_prompt}]},
-        "generationConfig": {"maxOutputTokens": 250, "temperature": 0.5},
-    }
-    
+    # 3. Delegación al agente LangChain
     try:
-        async with httpx.AsyncClient(timeout=12.0) as client:
-            res = await client.post(url, json=payload)
-            if res.status_code == 200:
-                data_resp = res.json()
-                reply_text = data_resp["candidates"][0]["content"]["parts"][0]["text"].strip()
-                return {
-                    "reply": reply_text,
-                    "tools_used": list(tool_results.keys()) or ["get_user_biometrics_and_progress"],
-                    "source": "gemini_mcp_agent"
-                }
-    except Exception:
-        pass
+        from agent import run_agent
+        result = run_agent(db, data.user_id, data.message[:CHAT_MAX_CHARS])
+        return result
+    except Exception as e:
+        print(f"Aviso en ejecución del agente: {e}")
+        ctx_simple = _build_user_context(db, data.user_id)
+        return {
+            "reply": _fallback_reply(data.message, ctx_simple),
+            "source": "fallback",
+            "tools_used": []
+        }
 
-    # Fallback
-    ctx_simple = _build_user_context(db, data.user_id)
-    return {
-        "reply": _fallback_reply(data.message, ctx_simple),
-        "tools_used": list(tool_results.keys()),
-        "source": "fallback"
-    }
 

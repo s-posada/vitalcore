@@ -205,16 +205,26 @@ VOCABULARY = [
     "pecho", "postura", "rendimiento", "longevidad", "recuperacion", "muscular"
 ]
 
+import unicodedata
+
+def _remove_accents(s: str) -> str:
+    """Elimina acentos y diacríticos preservando los caracteres base."""
+    return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
+
 def _stem(w: str) -> str:
     """Extrae la raíz semántica básica en español (lematización ligera)."""
-    w = w.lower()
-    for suffix in ["ciones", "cion", "mente", "arios", "aria", "ario", "arias", "ados", "ada", "ado", "adas", "ales", "al", "ico", "ica", "icas", "icos", "es", "s"]:
+    w = _remove_accents(w.lower())
+    for suffix in [
+        "ciones", "cion", "mente", "arios", "aria", "ario", "arias",
+        "ados", "ada", "ado", "adas", "ales", "al", "ico", "ica", "icas", "icos",
+        "idas", "ida", "idos", "ido", "es", "s", "as", "a", "os", "o"
+    ]:
         if w.endswith(suffix) and len(w) - len(suffix) >= 4:
             return w[:-len(suffix)]
     return w
 
 def _tokenize(text: str) -> List[str]:
-    clean = re.sub(r"[^\w\s]", " ", text.lower())
+    clean = re.sub(r"[^\w\s]", " ", _remove_accents(text.lower()))
     return [w for w in clean.split() if len(w) >= 3]
 
 def _build_dense_vector(text: str) -> List[float]:
@@ -253,21 +263,61 @@ def _cosine_similarity(vec_a: List[float], vec_b: List[float]) -> float:
     return max(0.0, min(1.0, dot_product))
 
 
+import json
+
+
 class VectorSearchEngine:
-    """Motor de búsqueda semántica vectorial para el catálogo de VitalCore."""
+    """Motor de búsqueda semántica vectorial para el catálogo de VitalCore V3 (SQLite + Embeddings)."""
     
     def __init__(self):
         self.index: List[Dict[str, Any]] = []
-        self._build_index()
 
-    def _build_index(self):
+    def reload(self, db: Any) -> None:
+        """
+        Recarga el índice vectorial consultando todos los registros de catalog_items en SQLite.
+        Deserializa embedding_json de cada ítem (Gemini 768 dims o fallback a vocabulario denso).
+        """
+        from database import CatalogItem
+        items = db.query(CatalogItem).all()
         self.index = []
-        for item in CATALOG_ITEMS:
-            # Combinación semántica del documento
-            searchable_text = f"{item['title']} {item['type']} {item['description']} {' '.join(item.get('tags', []))} {item.get('impact_level', '')} {' '.join(item.get('target_muscles', []))}"
-            vector = _build_dense_vector(searchable_text)
+
+        for item in items:
+            item_dict = {
+                "id": item.id,
+                "category": item.category,
+                "title": item.title,
+                "type": item.type,
+                "tags": item.tags if isinstance(item.tags, list) else [],
+                "description": item.description,
+                "joint_friendly": bool(item.joint_friendly),
+                "calories": item.calories,
+                "protein_g": item.protein_g,
+                "carbs_g": item.carbs_g,
+                "fat_g": item.fat_g,
+                "target_muscles": item.target_muscles if isinstance(item.target_muscles, list) else [],
+                "impact_level": item.impact_level,
+                "duration_min": item.duration_min,
+                "prep_time_min": item.prep_time_min,
+                "difficulty": item.difficulty
+            }
+            tags_str = " ".join(item_dict["tags"])
+            muscles_str = " ".join(item_dict["target_muscles"])
+            searchable_text = f"{item_dict['title']} {item_dict['type']} {item_dict['description']} {tags_str} {item_dict.get('impact_level', '')} {muscles_str}"
+
+            vector = None
+            if item.embedding_json:
+                try:
+                    loaded = json.loads(item.embedding_json)
+                    if loaded and len(loaded) == 768:
+                        vector = loaded
+                except Exception:
+                    vector = None
+
+            if not vector:
+                vector = _build_dense_vector(searchable_text)
+
             self.index.append({
-                "item": item,
+                "item": item_dict,
                 "vector": vector,
                 "text": searchable_text
             })
@@ -275,12 +325,33 @@ class VectorSearchEngine:
     def search(self, query: str, category: Optional[str] = None, top_k: int = 4) -> List[Dict[str, Any]]:
         """
         Ejecuta una búsqueda semántica vectorial.
-        Calcula la similitud coseno entre el embedding de la query y el catálogo.
+        Calcula la similitud coseno entre el embedding de la query y el catálogo indexado.
         """
-        if not query.strip():
+        if not query or not query.strip():
             return []
 
-        query_vec = _build_dense_vector(query)
+        # Determinar vector de la query (Gemini 768 o fallback denso)
+        query_vec = None
+        if self.index and len(self.index[0]["vector"]) == 768:
+            api_key = os.getenv("GEMINI_API_KEY", "").strip()
+            if api_key:
+                try:
+                    import google.generativeai as genai
+                    genai.configure(api_key=api_key)
+                    res = genai.embed_content(
+                        model="models/text-embedding-004",
+                        content=query,
+                        task_type="retrieval_query"
+                    )
+                    emb = res.get("embedding")
+                    if emb and len(emb) == 768:
+                        query_vec = emb
+                except Exception:
+                    query_vec = None
+
+        if query_vec is None:
+            query_vec = _build_dense_vector(query)
+
         results = []
 
         for entry in self.index:
@@ -290,11 +361,16 @@ class VectorSearchEngine:
             if category and category.lower() != "todas" and item["category"].lower() != category.lower():
                 continue
 
-            similarity = _cosine_similarity(query_vec, entry["vector"])
+            # Si las dimensiones difieren por contingencia de clave, usar fallback de vector denso del ítem
+            entry_vec = entry["vector"]
+            if len(query_vec) != len(entry_vec):
+                entry_vec = _build_dense_vector(entry["text"])
+
+            similarity = _cosine_similarity(query_vec, entry_vec)
             
-            # Bonificación si hay palabras clave explícitas en el título o tags
+            # Bonificación si hay palabras clave explícitas en el texto o tags
             q_tokens = _tokenize(query)
-            text_lower = entry["text"].lower()
+            text_lower = _remove_accents(entry["text"].lower())
             exact_matches = sum(1 for tok in q_tokens if tok in text_lower)
             lexical_boost = min(0.25, exact_matches * 0.08)
             
@@ -313,11 +389,11 @@ class VectorSearchEngine:
         return results[:top_k]
 
     def _get_match_reason(self, query: str, item: Dict[str, Any]) -> str:
-        q = query.lower()
+        q = _remove_accents(query.lower())
         if "rodilla" in q or "lumbar" in q or "articul" in q:
             if item.get("joint_friendly"):
                 return "Recomendado por bajo impacto y protección articular."
-        if "rapido" in q or "tiempo" in q or "express" in q or "minutos" in q:
+        if "rapido" in q or "tiempo" in q or "express" in q or "minuto" in q:
             return "Opción optimizada para preparación o ejecución en corto tiempo."
         if "proteina" in q or "hipertrofia" in q:
             return "Alta concentración de aminoácidos / estímulo anabólico."
@@ -325,6 +401,3 @@ class VectorSearchEngine:
             return "Protocolo de regulación parasimpática y descanso."
         return "Coincidencia semántica con tus objetivos de bienestar."
 
-
-# Instancia singleton del motor
-semantic_engine = VectorSearchEngine()
