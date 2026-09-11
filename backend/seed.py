@@ -1080,22 +1080,24 @@ CATALOG_SEED = [
 
 
 def _generate_catalog_embedding(text: str) -> list:
-    """Genera embedding real de 768 dims con Gemini text-embedding-004 o fallback a vocabulario denso."""
+    """Genera embedding real de 768 dims con Gemini o fallback a vocabulario denso."""
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if api_key:
+        from semantic_engine import EMBEDDING_MODEL, EMBEDDING_DIMS
         try:
             import google.generativeai as genai
             genai.configure(api_key=api_key)
             res = genai.embed_content(
-                model="models/text-embedding-004",
+                model=f"models/{EMBEDDING_MODEL}",
                 content=text,
-                task_type="retrieval_document"
+                task_type="retrieval_document",
+                output_dimensionality=EMBEDDING_DIMS
             )
             emb = res.get("embedding")
-            if emb and len(emb) == 768:
+            if emb and len(emb) == EMBEDDING_DIMS:
                 return emb
         except Exception as e:
-            print(f"⚠️ Aviso: Error al invocar Gemini text-embedding-004 ({e}). Usando vector denso.")
+            print(f"⚠️ Aviso: Error al invocar Gemini {EMBEDDING_MODEL} ({e}). Usando vector denso.")
 
     from semantic_engine import _build_dense_vector
     return _build_dense_vector(text)

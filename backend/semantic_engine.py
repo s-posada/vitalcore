@@ -3,7 +3,7 @@ VitalCore — Motor de Búsqueda Semántica Vectorial & Embeddings
 ==============================================================
 Implementa indexación vectorial y cálculo de similitud coseno sobre el catálogo
 multimodal de VitalCore (Nutrición, Ejercicios y Meditación Guiada).
-Soporta embeddings de alta dimensionalidad vía Google Gemini (text-embedding-004)
+Soporta embeddings de alta dimensionalidad vía Google Gemini
 con fallback a representaciones semánticas densas normalizadas.
 """
 
@@ -18,7 +18,8 @@ except ImportError:
     httpx = None
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-EMBEDDING_MODEL = "text-embedding-004"
+EMBEDDING_MODEL = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001")
+EMBEDDING_DIMS = 768
 
 # ── CATÁLOGO EXPANDIDO DE ENTIDADES INDEXABLES (NUTRICIÓN, EJERCICIOS, MEDITACIÓN) ──
 CATALOG_ITEMS: List[Dict[str, Any]] = [
@@ -339,12 +340,13 @@ class VectorSearchEngine:
                     import google.generativeai as genai
                     genai.configure(api_key=api_key)
                     res = genai.embed_content(
-                        model="models/text-embedding-004",
+                        model=f"models/{EMBEDDING_MODEL}",
                         content=query,
-                        task_type="retrieval_query"
+                        task_type="retrieval_query",
+                        output_dimensionality=EMBEDDING_DIMS
                     )
                     emb = res.get("embedding")
-                    if emb and len(emb) == 768:
+                    if emb and len(emb) == EMBEDDING_DIMS:
                         query_vec = emb
                 except Exception:
                     query_vec = None
