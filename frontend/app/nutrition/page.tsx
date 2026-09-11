@@ -3,12 +3,12 @@ import React, { useState, useEffect } from 'react'
 import Navbar from '@/components/Navbar'
 import { Salad, Zap, Loader2, Sparkles, AlertTriangle, Sunrise, Drumstick, Fish, Apple, Coffee, Leaf, Moon, Droplet, Microscope, Check } from 'lucide-react'
 import { API_BASE_URL as API } from '@/lib/api'
+import type { NutritionPlan, UserProfile, UserSession } from '@/lib/types'
 
 export default function NutritionPage() {
-  const [user, setUser] = useState<any>(null)
-  const [plan, setPlan] = useState<any>(null)
+  const [user, setUser] = useState<UserSession | null>(null)
+  const [plan, setPlan] = useState<NutritionPlan | null>(null)
   const [selectedDay, setSelectedDay] = useState(1)
-  const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [checkedMeals, setCheckedMeals] = useState<Record<string, boolean>>({})
   const [toastMsg, setToastMsg] = useState('')
@@ -16,13 +16,17 @@ export default function NutritionPage() {
 
   useEffect(() => {
     const stored = localStorage.getItem('vc_user')
-    const currentUser = stored ? JSON.parse(stored) : { id: 1, email: 'sposada2026@udec.cl', name: 'Sebastián Posada' }
+    if (!stored) {
+      window.location.href = '/login'
+      return
+    }
+    const currentUser = JSON.parse(stored) as UserSession
     setUser(currentUser)
     // El objetivo principal declarado en los datos de origen preselecciona el plan
     try {
       const savedProfile = localStorage.getItem('vc_profile')
       if (savedProfile) {
-        const p = JSON.parse(savedProfile)
+        const p = JSON.parse(savedProfile) as UserProfile
         if (p?.primary_goal) setActiveGoal(p.primary_goal)
       }
     } catch {}
@@ -36,20 +40,17 @@ export default function NutritionPage() {
 
   const loadNutrition = async (userId: number) => {
     try {
-      setLoading(true)
       const res = await fetch(`${API}/api/nutrition/${userId}`)
       if (res.ok) {
-        const data = await res.json()
+        const data = await res.json() as NutritionPlan
         setPlan(data)
         // El objetivo local (datos de origen) tiene prioridad sobre el del plan guardado
         let hasLocalGoal = false
         try { hasLocalGoal = !!JSON.parse(localStorage.getItem('vc_profile') || 'null')?.primary_goal } catch {}
         if (!hasLocalGoal) setActiveGoal(data.goal || 'gain_muscle')
       }
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setLoading(false)
+    } catch (error) {
+      console.error(error)
     }
   }
 
@@ -71,7 +72,7 @@ export default function NutritionPage() {
         showToast('¡Plan Nutricional Inteligente de 30 días recalculado con éxito!')
         loadNutrition(user.id)
       }
-    } catch (e) {
+    } catch {
       showToast('Error al generar nuevo plan')
     } finally {
       setGenerating(false)
@@ -82,7 +83,7 @@ export default function NutritionPage() {
     setCheckedMeals(prev => ({ ...prev, [mealKey]: !prev[mealKey] }))
   }
 
-  const currentDayData = plan?.days?.find((d: any) => d.day === selectedDay) || plan?.days?.[0]
+  const currentDayData = plan?.days?.find((d) => d.day === selectedDay) || plan?.days?.[0]
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">

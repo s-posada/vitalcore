@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import Navbar from '@/components/Navbar'
 import Link from 'next/link'
-import { avatarUrl } from '@/lib/avatar'
+import { useRouter } from 'next/navigation'
 import {
   Flame,
   Salad,
@@ -22,6 +22,7 @@ import {
   Pencil
 } from 'lucide-react'
 import { API_BASE_URL as API } from '@/lib/api'
+import type { DashboardStats, UserProfile, UserSession } from '@/lib/types'
 
 const GOAL_LABELS: Record<string, string> = {
   gain_muscle: 'Ganar masa muscular',
@@ -40,13 +41,13 @@ const ACTIVITY_LABELS: Record<string, string> = {
 }
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<any>(null)
-  const [stats, setStats] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+  const [user, setUser] = useState<UserSession | null>(null)
+  const [stats, setStats] = useState<DashboardStats | null>(null)
   const [savingLog, setSavingLog] = useState(false)
   const [toastMsg, setToastMsg] = useState('')
   const [toastType, setToastType] = useState<'success' | 'warning' | 'lock'>('success')
-  const [profile, setProfile] = useState<any>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
 
   // Quick log state
   const todayStr = new Date().toISOString().split('T')[0]
@@ -64,21 +65,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const stored = localStorage.getItem('vc_user')
-    let currentUser: any = null
-    if (stored) {
-      currentUser = JSON.parse(stored)
-    } else {
-      currentUser = {
-        id: 1,
-        name: 'Sebastián Posada',
-        email: 'sposada2026@udec.cl',
-        avatar_url: avatarUrl('sebastian', 'male'),
-        tier: 'pro',
-        is_admin: true,
-        days_left: 28
-      }
-      localStorage.setItem('vc_user', JSON.stringify(currentUser))
+    if (!stored) {
+      router.replace('/login')
+      return
     }
+    const currentUser = JSON.parse(stored) as UserSession
     setUser(currentUser)
     // Datos de origen guardados por el onboarding (incluye objetivos múltiples)
     try {
@@ -86,36 +77,34 @@ export default function DashboardPage() {
       if (savedProfile) setProfile(JSON.parse(savedProfile))
     } catch {}
     loadData(currentUser.id, currentUser.email)
-  }, [])
+  }, [router])
 
   const loadData = async (userId: number, email: string) => {
     try {
-      setLoading(true)
       // Stats
       const sRes = await fetch(`${API}/api/stats/${userId}`)
       if (sRes.ok) {
-        const sData = await sRes.json()
+        const sData = await sRes.json() as DashboardStats
         setStats(sData)
       }
 
       // User details
       const uRes = await fetch(`${API}/api/users/me?email=${encodeURIComponent(email)}`)
       if (uRes.ok) {
-        const uData = await uRes.json()
-        setUser((prev: any) => ({ ...prev, ...uData }))
-        if (uData.profile?.weight_kg) {
-          setLogForm((p) => ({ ...p, weight: uData.profile.weight_kg }))
+        const uData = await uRes.json() as UserSession
+        setUser((prev) => prev ? ({ ...prev, ...uData }) : uData)
+        const profileWeight = uData.profile?.weight_kg
+        if (typeof profileWeight === 'number') {
+          setLogForm((p) => ({ ...p, weight: profileWeight }))
         }
         // El perfil del backend complementa los datos de origen locales
         if (uData.profile) {
-          setProfile((p: any) => ({ ...uData.profile, ...(p || {}) }))
+          setProfile((p) => ({ ...uData.profile, ...(p || {}) }))
         }
       }
 
-    } catch (e) {
-      console.error('Error fetching dashboard data:', e)
-    } finally {
-      setLoading(false)
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
     }
   }
 
@@ -149,7 +138,7 @@ export default function DashboardPage() {
         showToast('¡Registro diario guardado con éxito!', 'success')
         loadData(user.id, user.email)
       }
-    } catch (e) {
+    } catch {
       showToast('Error al conectar con el servidor', 'warning')
     } finally {
       setSavingLog(false)
@@ -338,8 +327,8 @@ export default function DashboardPage() {
 
               {/* Bar visualization */}
               <div className="h-44 flex items-end gap-2 pt-6 pb-2 px-2 border-b border-slate-200">
-                {stats?.weight_progress?.length > 0 ? (
-                  stats.weight_progress.map((w: any, idx: number) => {
+                {(stats?.weight_progress?.length ?? 0) > 0 ? (
+                  (stats?.weight_progress ?? []).map((w, idx: number) => {
                     const minW = 75
                     const maxW = 82
                     const heightPct = Math.max(15, Math.min(100, ((w.weight - minW) / (maxW - minW)) * 100))
@@ -393,7 +382,7 @@ export default function DashboardPage() {
                   { label: 'Estatura', value: profile?.height_cm ? `${profile.height_cm} cm` : '—' },
                   { label: 'IMC', value: profile?.imc || user?.profile?.imc || '—' },
                   { label: 'TDEE', value: (profile?.tdee || user?.profile?.tdee) ? `${profile?.tdee || user?.profile?.tdee} kcal` : '—' },
-                  { label: 'Actividad', value: ACTIVITY_LABELS[profile?.activity_level] || '—' },
+                  { label: 'Actividad', value: profile?.activity_level ? ACTIVITY_LABELS[profile.activity_level] || '—' : '—' },
                   { label: 'Peso objetivo', value: (profile?.target_weight_kg || user?.profile?.target_weight_kg) ? `${profile?.target_weight_kg || user?.profile?.target_weight_kg} kg` : '—' },
                 ].map((d) => (
                   <div key={d.label} className="bg-slate-50 border border-slate-100 rounded-xl p-2.5">

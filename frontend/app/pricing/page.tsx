@@ -1,23 +1,26 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import Navbar from '@/components/Navbar'
-import { useRouter } from 'next/navigation'
 import {
   Gem, Star, Crown, Check, PartyPopper, AlertTriangle, Salad, Dumbbell,
   BarChart3, Users, Ticket, Droplet, Sparkles, Bot, Mic, Leaf, Timer,
   Rocket, Dna, Zap, Award, TrendingUp
 } from 'lucide-react'
 import { API_BASE_URL as API } from '@/lib/api'
+import type { UserSession } from '@/lib/types'
 
 export default function PricingPage() {
-  const router = useRouter()
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<UserSession | null>(null)
   const [loadingTier, setLoadingTier] = useState<string | null>(null)
   const [toastMsg, setToastMsg] = useState('')
 
   useEffect(() => {
     const stored = localStorage.getItem('vc_user')
-    const currentUser = stored ? JSON.parse(stored) : { id: 1, email: 'sposada2026@udec.cl', name: 'Sebastián Posada', tier: 'pro' }
+    if (!stored) {
+      window.location.href = '/login'
+      return
+    }
+    const currentUser = JSON.parse(stored) as UserSession
     setUser(currentUser)
   }, [])
 
@@ -47,7 +50,7 @@ export default function PricingPage() {
         setUser(updatedUser)
         showToast(`¡Plan ${tierName.toUpperCase()} ($${data.tier_price_usd} USD) activado con 30 días de vigencia!`)
       }
-    } catch (e) {
+    } catch {
       showToast('Error al procesar suscripción')
     } finally {
       setLoadingTier(null)

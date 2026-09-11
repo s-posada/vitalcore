@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import Navbar from '@/components/Navbar'
 import {
   Dumbbell, Zap, Loader2, Sparkles, AlertTriangle, Timer, X, Lightbulb, Check,
-  TrendingUp, Target, Flame, Activity, CalendarCheck2, Pencil, Route, Trophy,
+  TrendingUp, Flame, Activity, Pencil, Route, Trophy,
   Rocket, Medal, MapPin, Clock3
 } from 'lucide-react'
 import {
@@ -11,9 +11,10 @@ import {
   CartesianGrid, Tooltip, Legend, ReferenceLine
 } from 'recharts'
 import { API_BASE_URL as API } from '@/lib/api'
+import type { DashboardStats, UserProfile, UserSession, WorkoutDay, WorkoutExercise, WorkoutPlan, WorkoutWeek } from '@/lib/types'
 
 // Plan de respaldo local: si el backend no responde, la experiencia sigue completa.
-const FALLBACK_PLAN = {
+const FALLBACK_PLAN: WorkoutPlan = {
   title: 'Plan de Entrenamiento Inteligente — Hipertrofia',
   goal: 'gain_muscle',
   weeks: Array.from({ length: 4 }, (_, w) => ({
@@ -91,11 +92,11 @@ type ActualEntry = {
   distance_km?: number
 }
 
-const isCardioExercise = (ex: any) =>
+const isCardioExercise = (ex: WorkoutExercise) =>
   ex.rest_sec === 0 || /min/.test(String(ex.reps || ''))
 
 // Reps planificadas como número (toma el primer número del string "10-12", "15 + dropset", "20 min")
-const plannedRepsNumber = (reps: any): number => {
+const plannedRepsNumber = (reps: string | number): number => {
   const m = String(reps || '').match(/\d+/)
   return m ? parseInt(m[0]) : 0
 }
@@ -124,9 +125,9 @@ function ProgressRing({ pct, size = 120, stroke = 10 }: { pct: number, size?: nu
 }
 
 export default function WorkoutPage() {
-  const [user, setUser] = useState<any>(null)
-  const [plan, setPlan] = useState<any>(null)
-  const [stats, setStats] = useState<any>(null)
+  const [user, setUser] = useState<UserSession | null>(null)
+  const [plan, setPlan] = useState<WorkoutPlan | null>(null)
+  const [stats, setStats] = useState<DashboardStats | null>(null)
   const [selectedWeek, setSelectedWeek] = useState(1)
   const [selectedDayIdx, setSelectedDayIdx] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -142,12 +143,16 @@ export default function WorkoutPage() {
 
   useEffect(() => {
     const stored = localStorage.getItem('vc_user')
-    const currentUser = stored ? JSON.parse(stored) : { id: 1, email: 'sposada2026@udec.cl', name: 'Sebastián Posada' }
+    if (!stored) {
+      window.location.href = '/login'
+      return
+    }
+    const currentUser = JSON.parse(stored) as UserSession
     setUser(currentUser)
     try {
       const savedProfile = localStorage.getItem('vc_profile')
       if (savedProfile) {
-        const p = JSON.parse(savedProfile)
+        const p = JSON.parse(savedProfile) as UserProfile
         if (p?.goals?.length) setProfileGoals(p.goals)
       }
     } catch {}
@@ -172,7 +177,7 @@ export default function WorkoutPage() {
 
   // Rest Timer Hook
   useEffect(() => {
-    let interval: any = null
+    let interval: ReturnType<typeof setInterval> | undefined
     if (activeTimer !== null && timerSeconds > 0) {
       interval = setInterval(() => {
         setTimerSeconds((sec) => sec - 1)
@@ -180,9 +185,11 @@ export default function WorkoutPage() {
     } else if (timerSeconds === 0) {
       showToast('¡Descanso completado! A por la siguiente serie', 'timer')
       setActiveTimer(null)
-      clearInterval(interval)
+      if (interval) clearInterval(interval)
     }
-    return () => clearInterval(interval)
+    return () => {
+      if (interval) clearInterval(interval)
+    }
   }, [activeTimer, timerSeconds])
 
   const showToast = (msg: string, type: 'success' | 'warning' | 'timer' | 'trophy' = 'success') => {
@@ -195,8 +202,8 @@ export default function WorkoutPage() {
     try {
       const res = await fetch(`${API}/api/stats/${userId}`)
       if (res.ok) setStats(await res.json())
-    } catch (e) {
-      console.error(e)
+    } catch (error) {
+      console.error(error)
     }
   }
 
@@ -205,7 +212,7 @@ export default function WorkoutPage() {
       setLoading(true)
       const res = await fetch(`${API}/api/workout/${userId}`)
       if (res.ok) {
-        const data = await res.json()
+        const data = await res.json() as WorkoutPlan
         if (data?.weeks?.length && data.weeks[0]?.days?.length) {
           setPlan(data)
           return
@@ -213,7 +220,7 @@ export default function WorkoutPage() {
         await fetch(`${API}/api/workout/generate/${userId}`, { method: 'POST' })
         const retry = await fetch(`${API}/api/workout/${userId}`)
         if (retry.ok) {
-          const retryData = await retry.json()
+          const retryData = await retry.json() as WorkoutPlan
           if (retryData?.weeks?.length && retryData.weeks[0]?.days?.length) {
             setPlan(retryData)
             return
@@ -221,8 +228,8 @@ export default function WorkoutPage() {
         }
       }
       setPlan(FALLBACK_PLAN)
-    } catch (e) {
-      console.error(e)
+    } catch (error) {
+      console.error(error)
       setPlan(FALLBACK_PLAN)
     } finally {
       setLoading(false)
@@ -241,7 +248,7 @@ export default function WorkoutPage() {
         setPlan(FALLBACK_PLAN)
         showToast('Plan regenerado en modo local', 'success')
       }
-    } catch (e) {
+    } catch {
       setPlan(FALLBACK_PLAN)
       showToast('Plan regenerado en modo local (sin conexión al servidor)', 'warning')
     } finally {
@@ -268,7 +275,7 @@ export default function WorkoutPage() {
     setActuals((prev) => ({ ...prev, [key]: { ...prev[key], [field]: num } }))
   }
 
-  const saveActual = (key: string, ex: any) => {
+  const saveActual = (key: string, ex: WorkoutExercise) => {
     const a = actuals[key]
     setEditingKey(null)
     if (!a) return
@@ -284,7 +291,7 @@ export default function WorkoutPage() {
     }
   }
 
-  const currentWeekData = plan?.weeks?.find((w: any) => w.week === selectedWeek) || plan?.weeks?.[0]
+  const currentWeekData = plan?.weeks?.find((w) => w.week === selectedWeek) || plan?.weeks?.[0]
   const currentDayData = currentWeekData?.days?.[selectedDayIdx] || currentWeekData?.days?.[0]
 
   // ── Métricas y datasets de gráficas ────────────────────────────────────────
@@ -295,11 +302,11 @@ export default function WorkoutPage() {
 
     let plannedSets = 0, doneSets = 0, plannedEx = 0, doneEx = 0
     let cardioMinutes = 0, distanceKm = 0, extraSets = 0
-    const perDay: any[] = []
+    const perDay: Array<{ dia: string; Plan: number; Real: number }> = []
 
-    ;(currentWeekData?.days || []).forEach((d: any, dIdx: number) => {
+    ;(currentWeekData?.days || []).forEach((d: WorkoutDay, dIdx: number) => {
       let dayPlanned = 0, dayDone = 0
-      ;(d.exercises || []).forEach((ex: any, eIdx: number) => {
+      ;(d.exercises || []).forEach((ex: WorkoutExercise, eIdx: number) => {
         const key = `w${selectedWeek}_d${dIdx}_e${eIdx}`
         const a = actuals[key]
         const checked = completedExercises[key]
@@ -543,7 +550,7 @@ export default function WorkoutPage() {
                 {selectedWeek === w && <span className="w-2 h-2 rounded-full bg-primary-500" />}
               </div>
               <div className="text-sm font-bold text-slate-900">{PHASE_NAMES[w - 1]}</div>
-              <div className="text-[10px] text-slate-400 mt-1">{plan?.weeks?.find((wk: any) => wk.week === w)?.days?.length ?? 6} días estructurados</div>
+              <div className="text-[10px] text-slate-400 mt-1">{plan?.weeks?.find((wk: WorkoutWeek) => wk.week === w)?.days?.length ?? 6} días estructurados</div>
             </button>
           ))}
         </div>
@@ -556,8 +563,8 @@ export default function WorkoutPage() {
                 <Loader2 className="w-4 h-4 animate-spin" /> Cargando plan de entrenamiento...
               </div>
             )}
-            {!loading && currentWeekData?.days?.map((d: any, idx: number) => {
-              const dayDone = (d.exercises || []).filter((_: any, eIdx: number) => completedExercises[`w${selectedWeek}_d${idx}_e${eIdx}`]).length
+            {!loading && currentWeekData?.days?.map((d: WorkoutDay, idx: number) => {
+              const dayDone = (d.exercises || []).filter((_, eIdx: number) => completedExercises[`w${selectedWeek}_d${idx}_e${eIdx}`]).length
               const dayTotal = (d.exercises || []).length
               return (
                 <button
@@ -595,13 +602,13 @@ export default function WorkoutPage() {
             <div className="text-xs text-slate-500">
               Completados:{' '}
               <span className="text-primary-700 font-bold">
-                {currentDayData?.exercises?.filter((_: any, i: number) => completedExercises[`w${selectedWeek}_d${selectedDayIdx}_e${i}`]).length || 0} / {currentDayData?.exercises?.length || 0}
+                {currentDayData?.exercises?.filter((_, i: number) => completedExercises[`w${selectedWeek}_d${selectedDayIdx}_e${i}`]).length || 0} / {currentDayData?.exercises?.length || 0}
               </span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {currentDayData?.exercises?.map((ex: any, idx: number) => {
+            {currentDayData?.exercises?.map((ex: WorkoutExercise, idx: number) => {
               const key = `w${selectedWeek}_d${selectedDayIdx}_e${idx}`
               const isDone = completedExercises[key]
               const a = actuals[key]

@@ -5,8 +5,17 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     plan: free
-    healthCheckPath: /
+    healthCheckPath: /health
     envVars:
+      - key: APP_ENV
+        value: production
+      # Este despliegue es una demo académica. Desactivar al integrar OAuth/OIDC.
+      - key: DEMO_MODE
+        value: true
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
       # URL del frontend en Vercel — se completa al crear el Blueprint (evita CORS abierto a "*")
       - key: ALLOWED_ORIGINS
         value: http://localhost:3000,http://localhost:3100

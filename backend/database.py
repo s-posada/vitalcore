@@ -1,7 +1,6 @@
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Boolean, Text, ForeignKey, JSON
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
-from datetime import datetime, timedelta
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+from datetime import datetime, timedelta, UTC
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -9,6 +8,11 @@ DATABASE_URL = "sqlite:////app/data/vitalcore.db" if os.path.exists("/app/data")
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+
+def utc_now() -> datetime:
+    """UTC sin zona para mantener compatibilidad con las columnas DateTime existentes."""
+    return datetime.now(UTC).replace(tzinfo=None)
 
 class CatalogItem(Base):
     __tablename__ = "catalog_items"
@@ -29,7 +33,7 @@ class CatalogItem(Base):
     prep_time_min = Column(Integer, nullable=True)
     difficulty = Column(String, nullable=True)
     embedding_json = Column(Text, nullable=True) # Vector de 768 dimensiones serializado como JSON
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
 
 class User(Base):
@@ -40,9 +44,9 @@ class User(Base):
     avatar_url = Column(String, nullable=True)
     is_admin = Column(Boolean, default=False)
     tier = Column(String, default="inicial") # inicial ($25), premium ($35), pro ($50)
-    subscription_started_at = Column(DateTime, default=datetime.utcnow)
-    subscription_expires_at = Column(DateTime, default=lambda: datetime.utcnow() + timedelta(days=30))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    subscription_started_at = Column(DateTime, default=utc_now)
+    subscription_expires_at = Column(DateTime, default=lambda: utc_now() + timedelta(days=30))
+    created_at = Column(DateTime, default=utc_now)
     
     profile = relationship("UserProfile", back_populates="user", uselist=False)
     posts = relationship("Post", back_populates="author")
@@ -77,7 +81,7 @@ class NutritionPlan(Base):
     carbs_g = Column(Integer)
     fat_g = Column(Integer)
     plan_json = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
 class WorkoutPlan(Base):
     __tablename__ = "workout_plans"
@@ -87,7 +91,7 @@ class WorkoutPlan(Base):
     goal = Column(String)
     weeks = Column(Integer, default=4)
     plan_json = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
 class DailyLog(Base):
     __tablename__ = "daily_logs"
@@ -134,7 +138,7 @@ class EventRSVP(Base):
     id = Column(Integer, primary_key=True, index=True)
     event_id = Column(Integer, ForeignKey("events.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
     user = relationship("User", back_populates="event_rsvps")
 
 class Post(Base):
@@ -146,7 +150,7 @@ class Post(Base):
     image_url = Column(String, nullable=True)
     tag = Column(String, default="General") # Progreso, Nutrición, Rutina, Motivación
     likes_count = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
     author = relationship("User", back_populates="posts")
     comments = relationship("Comment", back_populates="post")
 
@@ -156,7 +160,7 @@ class Comment(Base):
     post_id = Column(Integer, ForeignKey("posts.id"))
     author_id = Column(Integer, ForeignKey("users.id"))
     content = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
     post = relationship("Post", back_populates="comments")
 
 class MeditationSession(Base):
@@ -165,7 +169,7 @@ class MeditationSession(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     meditation_id = Column(String)
     duration_min = Column(Integer)
-    completed_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, default=utc_now)
 
 def get_db():
     db = SessionLocal()

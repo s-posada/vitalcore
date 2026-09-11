@@ -1,5 +1,11 @@
 {
   "name": "vitalcore-monorepo",
   "version": "0.1.0",
-  "private": true
+  "private": true,
+  "scripts": {
+    "lint": "npm --prefix frontend run lint",
+    "typecheck": "npm --prefix frontend run typecheck",
+    "build": "npm --prefix frontend run build",
+    "test:backend": "python -m pytest backend -q"
+  }
 }

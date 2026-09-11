@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { avatarUrl } from '@/lib/avatar'
-import { Dumbbell, Flame, Scale, PersonStanding, Flower2, Check, Bot, Loader2, Rocket } from 'lucide-react'
+import { Dumbbell, Flame, Scale, PersonStanding, Flower2, Check, Bot, Loader2, Rocket, AlertTriangle } from 'lucide-react'
 import { API_BASE_URL as API } from '@/lib/api'
 
 const GOALS = [
@@ -26,6 +26,7 @@ export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [goals, setGoals] = useState<string[]>([])
   const [form, setForm] = useState({
     name: '', email: '', age: '', weight_kg: '', height_cm: '',
@@ -43,6 +44,7 @@ export default function OnboardingPage() {
 
   const handleSubmit = async () => {
     setLoading(true)
+    setError('')
     try {
       // Create/get user
       const userRes = await fetch(`${API}/api/auth/session`, {
@@ -50,12 +52,13 @@ export default function OnboardingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: form.email || 'demo@vitalcore.app', name: form.name || 'Usuario Demo', avatar_url: avatarUrl(form.name || 'usuario') }),
       })
+      if (!userRes.ok) throw new Error('No fue posible crear la sesión')
       const user = await userRes.json()
       localStorage.setItem('vc_user', JSON.stringify(user))
 
       // Complete onboarding (el backend recibe el objetivo principal;
       // la lista completa de objetivos queda en el perfil local)
-      await fetch(`${API}/api/onboarding/${user.id}`, {
+      const profileRes = await fetch(`${API}/api/onboarding/${user.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -65,19 +68,20 @@ export default function OnboardingPage() {
           target_weight_kg: form.target_weight_kg ? parseFloat(form.target_weight_kg) : null,
         }),
       })
+      if (!profileRes.ok) throw new Error('No fue posible guardar el perfil')
 
       saveLocalProfile()
 
       // Generate plans
-      await fetch(`${API}/api/nutrition/generate/${user.id}`, { method: 'POST' })
-      await fetch(`${API}/api/workout/generate/${user.id}`, { method: 'POST' })
+      const [nutritionRes, workoutRes] = await Promise.all([
+        fetch(`${API}/api/nutrition/generate/${user.id}`, { method: 'POST' }),
+        fetch(`${API}/api/workout/generate/${user.id}`, { method: 'POST' }),
+      ])
+      if (!nutritionRes.ok || !workoutRes.ok) throw new Error('No fue posible generar los planes')
 
       router.push('/dashboard')
-    } catch (e) {
-      // Demo fallback — navigate anyway
-      localStorage.setItem('vc_user', JSON.stringify({ id: 1, name: form.name || 'Demo', email: form.email || 'demo@vitalcore.app', tier: 'free', is_admin: false, onboarding_done: true }))
-      saveLocalProfile()
-      router.push('/dashboard')
+    } catch {
+      setError('No pudimos completar tu configuración. Verifica la conexión e inténtalo nuevamente.')
     } finally {
       setLoading(false)
     }
@@ -352,6 +356,11 @@ export default function OnboardingPage() {
               </button>
             )}
           </div>
+          {error && (
+            <p role="alert" className="flex items-center gap-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
+            </p>
+          )}
         </div>
 
         <p className="text-center text-slate-400 text-xs mt-6">

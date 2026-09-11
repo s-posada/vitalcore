@@ -1,24 +1,27 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import Navbar from '@/components/Navbar'
-import Link from 'next/link'
 import { avatarUrl } from '@/lib/avatar'
 import { Zap, Users, Crown, CheckCircle2, CalendarDays, AlertTriangle } from 'lucide-react'
-import { API_BASE_URL as API } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
+import type { AdminMetrics, UserSession } from '@/lib/types'
 
 export default function AdminPage() {
-  const [user, setUser] = useState<any>(null)
-  const [usersList, setUsersList] = useState<any[]>([])
-  const [metrics, setMetrics] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<UserSession | null>(null)
+  const [usersList, setUsersList] = useState<UserSession[]>([])
+  const [metrics, setMetrics] = useState<AdminMetrics | null>(null)
   const [search, setSearch] = useState('')
   const [toastMsg, setToastMsg] = useState<React.ReactNode>('')
 
   useEffect(() => {
     const stored = localStorage.getItem('vc_user')
-    const currentUser = stored ? JSON.parse(stored) : { id: 1, email: 'sposada2026@udec.cl', name: 'Sebastián Posada', is_admin: true }
+    const currentUser = stored ? JSON.parse(stored) as UserSession : null
+    if (!currentUser?.is_admin || !currentUser.access_token) {
+      window.location.href = '/login'
+      return
+    }
     setUser(currentUser)
-    loadAdminData(currentUser.email)
+    loadAdminData()
   }, [])
 
   const showToast = (msg: React.ReactNode) => {
@@ -26,38 +29,35 @@ export default function AdminPage() {
     setTimeout(() => setToastMsg(''), 3500)
   }
 
-  const loadAdminData = async (adminEmail: string) => {
+  const loadAdminData = async () => {
     try {
-      setLoading(true)
-      const uRes = await fetch(`${API}/api/admin/users?admin_email=${encodeURIComponent(adminEmail)}`)
+      const uRes = await apiFetch('/api/admin/users')
       if (uRes.ok) {
         setUsersList(await uRes.json())
       }
 
-      const mRes = await fetch(`${API}/api/admin/metrics?admin_email=${encodeURIComponent(adminEmail)}`)
+      const mRes = await apiFetch('/api/admin/metrics')
       if (mRes.ok) {
         setMetrics(await mRes.json())
       }
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setLoading(false)
+    } catch (error) {
+      console.error(error)
     }
   }
 
   const handleChangeTier = async (targetUserId: number, newTier: string) => {
     if (!user) return
     try {
-      const res = await fetch(`${API}/api/admin/users/${targetUserId}/tier?admin_email=${encodeURIComponent(user.email)}`, {
+      const res = await apiFetch(`/api/admin/users/${targetUserId}/tier`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tier: newTier, days_to_add: 30 })
       })
       if (res.ok) {
         showToast(<><CheckCircle2 className="w-4 h-4" /> Nivel de usuario actualizado a: {newTier.toUpperCase()}</>)
-        loadAdminData(user.email)
+        loadAdminData()
       }
-    } catch (e) {
+    } catch {
       showToast(<><AlertTriangle className="w-4 h-4" /> Error al actualizar nivel</>)
     }
   }
@@ -65,16 +65,16 @@ export default function AdminPage() {
   const handleAddDays = async (targetUserId: number, currentTier: string) => {
     if (!user) return
     try {
-      const res = await fetch(`${API}/api/admin/users/${targetUserId}/tier?admin_email=${encodeURIComponent(user.email)}`, {
+      const res = await apiFetch(`/api/admin/users/${targetUserId}/tier`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tier: currentTier, days_to_add: 30 })
       })
       if (res.ok) {
         showToast(<><CalendarDays className="w-4 h-4" /> +30 días de suscripción otorgados con éxito</>)
-        loadAdminData(user.email)
+        loadAdminData()
       }
-    } catch (e) {
+    } catch {
       showToast(<><AlertTriangle className="w-4 h-4" /> Error al extender días</>)
     }
   }
@@ -82,15 +82,15 @@ export default function AdminPage() {
   const handleToggleAdmin = async (targetUserId: number) => {
     if (!user) return
     try {
-      const res = await fetch(`${API}/api/admin/users/${targetUserId}/toggle-admin?admin_email=${encodeURIComponent(user.email)}`, {
+      const res = await apiFetch(`/api/admin/users/${targetUserId}/toggle-admin`, {
         method: 'PATCH'
       })
       if (res.ok) {
         const data = await res.json()
         showToast(<><Zap className="w-4 h-4" /> Rol de administrador {data.is_admin ? 'otorgado' : 'revocado'}</>)
-        loadAdminData(user.email)
+        loadAdminData()
       }
-    } catch (e) {
+    } catch {
       showToast(<><AlertTriangle className="w-4 h-4" /> Error al cambiar permisos</>)
     }
   }

@@ -1,15 +1,18 @@
 import os, json, random, time, asyncio
+from contextlib import asynccontextmanager
 import httpx
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from database import (
     get_db, SessionLocal, create_tables, User, UserProfile, NutritionPlan,
     WorkoutPlan, DailyLog, Post, EventRSVP, CatalogItem
 )
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
+from typing import Optional, List, Dict, Any, Literal
+from datetime import datetime, timedelta, UTC
 
 from semantic_engine import VectorSearchEngine
 from engine_registry import set_engine, get_engine
@@ -18,6 +21,11 @@ from mcp_server import MCP_TOOLS_MANIFEST, execute_mcp_tool, tool_get_user_biome
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = "gemini-1.5-flash"
+APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
+DEMO_MODE = os.getenv("DEMO_MODE", "true" if APP_ENV != "production" else "false").strip().lower() in {"1", "true", "yes", "on"}
+SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
+JWT_ALGORITHM = "HS256"
+SESSION_TTL_MINUTES = 12 * 60
 
 # ── Chat: límites anti-abuso (en memoria, suficiente para un solo proceso) ──────
 CHAT_RATE_WINDOW_SEC = 60
@@ -33,15 +41,11 @@ def _chat_rate_limited(user_id: int) -> bool:
     return len(hits) > CHAT_RATE_MAX_MSGS
 
 # ── App setup ──────────────────────────────────────────────────────────────────
-app = FastAPI(
-    title="VitalCore API — Bienestar Integral & Longevidad",
-    version="2.0.0",
-    description="Backend de alto rendimiento para Nutrición, Entrenamiento, Meditación y Comunidad"
-)
-
-@app.on_event("startup")
-def startup():
-    """SPEC-01: Inicializa tablas, seed de catálogo en SQLite y recarga el motor semántico."""
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Inicializa persistencia y búsqueda semántica una sola vez por proceso."""
+    if not SECRET_KEY and not DEMO_MODE:
+        raise RuntimeError("SECRET_KEY es obligatoria cuando DEMO_MODE=false")
     create_tables()
     db = SessionLocal()
     try:
@@ -53,6 +57,15 @@ def startup():
         set_engine(engine)
     finally:
         db.close()
+    yield
+
+
+app = FastAPI(
+    title="VitalCore API — Bienestar Integral & Longevidad",
+    version="2.1.0",
+    description="API del prototipo VitalCore para nutrición, entrenamiento y bienestar.",
+    lifespan=lifespan,
+)
 
 # CORS restringido: orígenes locales + regex combinado para Vercel, Anthropic y Claude.ai (SPEC-03)
 ALLOWED_ORIGINS = [
@@ -93,46 +106,40 @@ ADMIN_EMAILS = [
 ]
 
 def is_admin_email(email: str) -> bool:
-    return email.strip().lower() in [e.lower() for e in ADMIN_EMAILS]
-
-@app.on_event("startup")
-def startup():
-    create_tables()
-    from seed import seed
-    seed()
+    return email.strip().lower() in {e.lower() for e in ADMIN_EMAILS}
 
 # ── Schemas ────────────────────────────────────────────────────────────────────
 class UserSessionRequest(BaseModel):
-    email: str
-    name: str
-    avatar_url: Optional[str] = None
-    tier: Optional[str] = "inicial"
+    email: str = Field(min_length=3, max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+    name: str = Field(min_length=2, max_length=100)
+    avatar_url: Optional[str] = Field(default=None, max_length=2048)
+    tier: Optional[Literal["inicial", "premium", "pro"]] = "inicial"
 
 class ProfileUpdate(BaseModel):
-    age: Optional[int] = None
-    weight_kg: Optional[float] = None
-    height_cm: Optional[float] = None
-    goal: Optional[str] = None
-    activity_level: Optional[str] = "moderate"
-    gender: Optional[str] = "other"
-    target_weight_kg: Optional[float] = None
-    health_notes: Optional[str] = None
+    age: Optional[int] = Field(default=None, ge=13, le=120)
+    weight_kg: Optional[float] = Field(default=None, gt=20, le=400)
+    height_cm: Optional[float] = Field(default=None, ge=100, le=250)
+    goal: Optional[Literal["gain_muscle", "lose_fat", "maintain", "improve_endurance", "improve_flexibility"]] = None
+    activity_level: Optional[Literal["sedentary", "light", "moderate", "active", "very_active"]] = "moderate"
+    gender: Optional[Literal["male", "female", "other"]] = "other"
+    target_weight_kg: Optional[float] = Field(default=None, gt=20, le=400)
+    health_notes: Optional[str] = Field(default=None, max_length=1000)
 
 class LogCreate(BaseModel):
-    date: str
-    calories_consumed: int = 0
-    protein_consumed: float = 0
-    carbs_consumed: float = 0
-    fat_consumed: float = 0
-    weight_kg: Optional[float] = None
+    date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    calories_consumed: int = Field(default=0, ge=0, le=15000)
+    protein_consumed: float = Field(default=0, ge=0, le=1000)
+    carbs_consumed: float = Field(default=0, ge=0, le=2000)
+    fat_consumed: float = Field(default=0, ge=0, le=1000)
+    weight_kg: Optional[float] = Field(default=None, gt=20, le=400)
     workout_done: bool = False
     meditation_done: bool = False
-    water_ml: int = 2000
-    mood: int = 4
+    water_ml: int = Field(default=2000, ge=0, le=15000)
+    mood: int = Field(default=4, ge=1, le=5)
 
 class TierChangeRequest(BaseModel):
-    tier: str # inicial, premium, pro
-    days_to_add: Optional[int] = 30
+    tier: Literal["inicial", "premium", "pro"]
+    days_to_add: Optional[int] = Field(default=30, ge=0, le=365)
 
 class ChatMessage(BaseModel):
     user_id: int
@@ -143,7 +150,7 @@ class ChatMessage(BaseModel):
 def calc_days_left(expires_at: Optional[datetime]) -> int:
     if not expires_at:
         return 30
-    now = datetime.utcnow()
+    now = datetime.now(UTC).replace(tzinfo=None)
     diff = (expires_at - now).total_seconds()
     if diff <= 0:
         return 0
@@ -171,33 +178,78 @@ TIER_PRICES = {"inicial": 25, "premium": 35, "pro": 50}
 def can_access_tier(user_tier: str, required_tier: str) -> bool:
     return TIER_ORDER.get(user_tier.lower(), 1) >= TIER_ORDER.get(required_tier.lower(), 1)
 
+
+bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def _signing_key() -> str:
+    """Usa una clave efímera conocida solo para desarrollo local en modo demo."""
+    return SECRET_KEY or "vitalcore-local-demo-key-do-not-use-in-production"
+
+
+def create_session_token(user: User) -> str:
+    expires_at = datetime.now(UTC) + timedelta(minutes=SESSION_TTL_MINUTES)
+    return jwt.encode(
+        {"sub": str(user.id), "email": user.email, "is_admin": bool(user.is_admin), "exp": expires_at},
+        _signing_key(),
+        algorithm=JWT_ALGORITHM,
+    )
+
+
+def require_admin(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+) -> User:
+    """Valida una sesión firmada y resuelve el rol desde la base de datos."""
+    if not credentials or credentials.scheme.lower() != "bearer":
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Se requiere una sesión válida")
+    try:
+        payload = jwt.decode(credentials.credentials, _signing_key(), algorithms=[JWT_ALGORITHM])
+        user_id = int(payload["sub"])
+    except (JWTError, KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Sesión inválida o expirada") from exc
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.is_admin:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Acceso reservado a administradores")
+    return user
+
 # ── Routes ─────────────────────────────────────────────────────────────────────
 
 @app.get("/")
 def root():
     return {
-        "status": "VitalCore API 2.0 Operativa 🚀",
-        "pricing": {
-            "inicial": "$25 USD / mes",
-            "premium": "$35 USD / mes",
-            "pro": "$50 USD / mes"
-        },
-        "admin_contact": ADMIN_EMAILS[0]
+        "name": "VitalCore API",
+        "version": app.version,
+        "status": "ok",
+        "environment": APP_ENV,
+        "demo_mode": DEMO_MODE,
     }
+
+
+@app.get("/health", include_in_schema=False)
+def health():
+    return {"status": "healthy", "version": app.version}
 
 # ── AUTH & USER ────────────────────────────────────────────────────────────────
 @app.post("/api/auth/session")
 def auth_session(data: UserSessionRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == data.email.strip().lower()).first()
+    if not DEMO_MODE:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "El acceso demo está desactivado; configure un proveedor de identidad para producción",
+        )
+    normalized_email = data.email.strip().lower()
+    normalized_name = " ".join(data.name.strip().split())
+    user = db.query(User).filter(User.email == normalized_email).first()
     if not user:
         is_adm = is_admin_email(data.email)
-        now = datetime.utcnow()
+        now = datetime.now(UTC).replace(tzinfo=None)
         user = User(
-            email=data.email.strip().lower(),
-            name=data.name,
+            email=normalized_email,
+            name=normalized_name,
             avatar_url=data.avatar_url or f"https://randomuser.me/api/portraits/{'men' if hash(data.name) % 2 == 0 else 'women'}/{abs(hash(data.name)) % 90 + 1}.jpg",
             is_admin=is_adm,
-            tier=data.tier or ("pro" if is_adm else "inicial"),
+            tier="pro" if is_adm else "inicial",
             subscription_started_at=now,
             subscription_expires_at=now + timedelta(days=30),
             created_at=now
@@ -218,11 +270,6 @@ def auth_session(data: UserSessionRequest, db: Session = Depends(get_db)):
         )
         db.add(profile)
         db.commit()
-    else:
-        if data.tier:
-            user.tier = data.tier
-            db.commit()
-
     days_left = calc_days_left(user.subscription_expires_at)
     profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
 
@@ -235,7 +282,10 @@ def auth_session(data: UserSessionRequest, db: Session = Depends(get_db)):
         "tier": user.tier,
         "subscription_expires_at": user.subscription_expires_at.isoformat() if user.subscription_expires_at else None,
         "days_left": days_left,
-        "onboarding_done": profile.onboarding_done if profile else False
+        "onboarding_done": profile.onboarding_done if profile else False,
+        "access_token": create_session_token(user),
+        "token_type": "bearer",
+        "demo_mode": True,
     }
 
 @app.get("/api/users/me")
@@ -279,7 +329,7 @@ def upgrade_user_tier(user_id: int, req: TierChangeRequest, db: Session = Depend
         raise HTTPException(404, "Usuario no encontrado")
     
     user.tier = req.tier.lower()
-    now = datetime.utcnow()
+    now = datetime.now(UTC).replace(tzinfo=None)
     user.subscription_started_at = now
     user.subscription_expires_at = now + timedelta(days=req.days_to_add or 30)
     db.commit()
@@ -304,7 +354,7 @@ def update_onboarding(user_id: int, data: ProfileUpdate, db: Session = Depends(g
         profile = UserProfile(user_id=user_id)
         db.add(profile)
     
-    for k, v in data.dict(exclude_none=True).items():
+    for k, v in data.model_dump(exclude_none=True).items():
         setattr(profile, k, v)
         
     profile.imc = calc_imc(profile.weight_kg, profile.height_cm)
@@ -357,6 +407,13 @@ def get_nutrition(user_id: int, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(plan)
 
+    plan_data = json.loads(plan.plan_json or "{}")
+    if not plan_data.get("days"):
+        from seed import NUTRITION_PLAN_TEMPLATE
+        plan_data = NUTRITION_PLAN_TEMPLATE
+        plan.plan_json = json.dumps(plan_data)
+        db.commit()
+
     return {
         "id": plan.id,
         "title": plan.title,
@@ -365,7 +422,7 @@ def get_nutrition(user_id: int, db: Session = Depends(get_db)):
         "protein_g": plan.protein_g,
         "carbs_g": plan.carbs_g,
         "fat_g": plan.fat_g,
-        "days": json.loads(plan.plan_json).get("days", []),
+        "days": plan_data.get("days", []),
         "created_at": plan.created_at.isoformat()
     }
 
@@ -423,11 +480,18 @@ def get_workout(user_id: int, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(plan)
 
+    plan_data = json.loads(plan.plan_json or "{}")
+    if not plan_data.get("weeks"):
+        from seed import WORKOUT_PLAN_TEMPLATE
+        plan_data = WORKOUT_PLAN_TEMPLATE
+        plan.plan_json = json.dumps(plan_data)
+        db.commit()
+
     return {
         "id": plan.id,
         "title": plan.title,
         "goal": plan.goal,
-        "weeks": json.loads(plan.plan_json).get("weeks", []),
+        "weeks": plan_data.get("weeks", []),
         "created_at": plan.created_at.isoformat()
     }
 
@@ -454,10 +518,10 @@ def generate_workout(user_id: int, db: Session = Depends(get_db)):
 def log_daily(user_id: int, data: LogCreate, db: Session = Depends(get_db)):
     log = db.query(DailyLog).filter(DailyLog.user_id == user_id, DailyLog.date == data.date).first()
     if log:
-        for k, v in data.dict(exclude_none=True).items():
+        for k, v in data.model_dump(exclude_none=True).items():
             setattr(log, k, v)
     else:
-        log = DailyLog(user_id=user_id, **data.dict())
+        log = DailyLog(user_id=user_id, **data.model_dump())
         db.add(log)
     db.commit()
     return {"success": True, "date": data.date}
@@ -537,11 +601,7 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
 
 # ── ADMIN PANEL ────────────────────────────────────────────────────────────────
 @app.get("/api/admin/users")
-def admin_get_users(admin_email: str, db: Session = Depends(get_db)):
-    admin = db.query(User).filter(User.email == admin_email.strip().lower()).first()
-    if not admin or not admin.is_admin:
-        raise HTTPException(403, "Acceso no autorizado: Solo Administrador")
-        
+def admin_get_users(_: User = Depends(require_admin), db: Session = Depends(get_db)):
     users = db.query(User).all()
     res = []
     for u in users:
@@ -562,37 +622,29 @@ def admin_get_users(admin_email: str, db: Session = Depends(get_db)):
     return res
 
 @app.patch("/api/admin/users/{user_id}/tier")
-def admin_change_tier(user_id: int, data: TierChangeRequest, admin_email: str, db: Session = Depends(get_db)):
-    admin = db.query(User).filter(User.email == admin_email.strip().lower()).first()
-    if not admin or not admin.is_admin:
-        raise HTTPException(403, "Acceso no autorizado")
+def admin_change_tier(user_id: int, data: TierChangeRequest, _: User = Depends(require_admin), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(404, "Usuario no encontrado")
     user.tier = data.tier.lower()
     if data.days_to_add:
-        user.subscription_expires_at = datetime.utcnow() + timedelta(days=data.days_to_add)
+        user.subscription_expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(days=data.days_to_add)
     db.commit()
     return {"success": True, "new_tier": user.tier, "days_left": calc_days_left(user.subscription_expires_at)}
 
 @app.patch("/api/admin/users/{user_id}/toggle-admin")
-def admin_toggle_role(user_id: int, admin_email: str, db: Session = Depends(get_db)):
-    admin = db.query(User).filter(User.email == admin_email.strip().lower()).first()
-    if not admin or not admin.is_admin:
-        raise HTTPException(403, "Acceso no autorizado")
+def admin_toggle_role(user_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(404, "Usuario no encontrado")
+    if user.id == admin.id:
+        raise HTTPException(400, "No puedes revocar tu propio rol administrativo")
     user.is_admin = not user.is_admin
     db.commit()
     return {"success": True, "is_admin": user.is_admin}
 
 @app.get("/api/admin/metrics")
-def admin_get_metrics(admin_email: str, db: Session = Depends(get_db)):
-    admin = db.query(User).filter(User.email == admin_email.strip().lower()).first()
-    if not admin or not admin.is_admin:
-        raise HTTPException(403, "Acceso no autorizado")
-        
+def admin_get_metrics(_: User = Depends(require_admin), db: Session = Depends(get_db)):
     total_users = db.query(User).count()
     inicial_users = db.query(User).filter(User.tier == "inicial").count()
     premium_users = db.query(User).filter(User.tier == "premium").count()
@@ -889,7 +941,7 @@ async def mcp_sse_endpoint():
             await asyncio.sleep(15)
             yield {
                 "event": "ping",
-                "data": json.dumps({"timestamp": datetime.utcnow().isoformat()})
+                "data": json.dumps({"timestamp": datetime.now(UTC).isoformat()})
             }
 
     return EventSourceResponse(event_generator())

@@ -1,6 +1,6 @@
 """Seed database with realistic users, founders (Equipo 2), investor, events, groups, and logs."""
 import json, sys, os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 import random
 
 from database import (
@@ -8,6 +8,10 @@ from database import (
     WorkoutPlan, DailyLog, Post, Comment, MeditationSession,
     CommunityGroup, Event, EventRSVP, CatalogItem
 )
+
+
+def utc_now() -> datetime:
+    return datetime.now(UTC).replace(tzinfo=None)
 
 FOUNDERS_EQUIPO_2 = [
     {
@@ -147,7 +151,7 @@ EVENTS_DATA = [
         "description": "Aprende cómo regular picos de glucosa y optimizar la energía digestiva durante todo el día con alimentos reales.",
         "speaker": "Dra. Catalina Vergara & Dra. Ana Morales",
         "speaker_role": "Equipo Médico & Nutrición Funcional VitalCore",
-        "event_date": datetime.utcnow() + timedelta(days=2, hours=4),
+        "event_date": utc_now() + timedelta(days=2, hours=4),
         "duration_min": 60,
         "min_tier": "inicial",
         "category": "nutrition",
@@ -158,7 +162,7 @@ EVENTS_DATA = [
         "description": "Sesión práctica de respiración guiada, protocolos de entrenamiento interválico y adaptación cardiovascular.",
         "speaker": "Andres Burboa & Fabian Alvarado",
         "speaker_role": "Coaches de Rendimiento VitalCore",
-        "event_date": datetime.utcnow() + timedelta(days=5, hours=2),
+        "event_date": utc_now() + timedelta(days=5, hours=2),
         "duration_min": 75,
         "min_tier": "premium",
         "category": "fitness",
@@ -169,7 +173,7 @@ EVENTS_DATA = [
         "description": "Experiencia inmersiva en vivo con frecuencias binaurales y escáner corporal guiado para preparar el sueño REM profundo.",
         "speaker": "Marian Garcia & Yenny Sanchez",
         "speaker_role": "Líderes de Bienestar Mental VitalCore",
-        "event_date": datetime.utcnow() + timedelta(days=7, hours=6),
+        "event_date": utc_now() + timedelta(days=7, hours=6),
         "duration_min": 45,
         "min_tier": "premium",
         "category": "mindset",
@@ -180,7 +184,7 @@ EVENTS_DATA = [
         "description": "Encuentro cerrado exclusivo para miembros Pro. Debate estratégico con el Prof. Martín Mellado y los fundadores sobre escalamiento de salud digital.",
         "speaker": "Prof. Martín Mellado & Sebastian Posada",
         "speaker_role": "Lead Angel Investor & CEO VitalCore",
-        "event_date": datetime.utcnow() + timedelta(days=9, hours=3),
+        "event_date": utc_now() + timedelta(days=9, hours=3),
         "duration_min": 90,
         "min_tier": "pro",
         "category": "mastermind",
@@ -331,7 +335,7 @@ def seed():
         all_user_defs = FOUNDERS_EQUIPO_2 + [INVESTOR] + OTHER_USERS
         users = []
         for ud in all_user_defs:
-            now = datetime.utcnow()
+            now = utc_now()
             days_left = ud.get("days_left", 30)
             expires_at = now + timedelta(days=days_left)
             started_at = now - timedelta(days=5)
@@ -396,7 +400,7 @@ def seed():
         # 5. Historical Daily Logs for Admins
         for u in users[:6]:
             for d in range(14):
-                date_str = (datetime.utcnow() - timedelta(days=13 - d)).strftime("%Y-%m-%d")
+                date_str = (utc_now() - timedelta(days=13 - d)).strftime("%Y-%m-%d")
                 log = DailyLog(
                     user_id=u.id,
                     date=date_str,
@@ -1142,4 +1146,3 @@ def seed_catalog(db) -> None:
 
 if __name__ == "__main__":
     seed()
-

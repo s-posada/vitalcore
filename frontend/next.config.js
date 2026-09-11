@@ -7,10 +7,6 @@ const securityHeaders = [
 ]
 
 const nextConfig = {
-  eslint: {
-    // Lint backlog (pre-existing) is tracked via `npm run lint`; it shouldn't block production builds.
-    ignoreDuringBuilds: true,
-  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },

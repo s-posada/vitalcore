@@ -28,6 +28,7 @@ def run_tests():
     assert r.status_code == 200, f"Auth failed: {r.text}"
     user_info = r.json()
     user_id = user_info["id"]
+    auth_headers = {"Authorization": f"Bearer {user_info['access_token']}"}
     assert user_info["is_admin"] is True, "Admin flag failed"
     print(f"✅ 2. Autenticación & Sesión (Super Admin id={user_id}): OK")
 
@@ -94,66 +95,28 @@ def run_tests():
     assert stats["streak_days"] >= 1
     print(f"✅ 8. Registro Diario & Dashboard Telemetría (Racha: {stats['streak_days']}d, Días Suscripción: {stats['days_left']}d): OK")
 
-    # 9. Meditations & Voice Catalog
-    r = client.get("/api/meditations")
-    assert r.status_code == 200
-    meds = r.json()
-    assert len(meds) >= 5
-    first_med = meds[0]["id"]
-    r = client.post(f"/api/meditations/{first_med}/complete/{user_id}")
-    assert r.status_code == 200
-    print(f"✅ 9. Catálogo de Meditaciones Guiadas por Voz ({len(meds)} sesiones): OK")
-
-    # 10. Live Events & RSVP Tier Gate
-    r = client.get("/api/community/events")
-    assert r.status_code == 200
-    events = r.json()
-    assert len(events) >= 3
-    ev_id = events[0]["id"]
-    r = client.post(f"/api/community/events/{ev_id}/rsvp/{user_id}")
-    assert r.status_code == 200
-    print(f"✅ 10. Eventos en Vivo & Sistema RSVP ({len(events)} eventos activos): OK")
-
-    # 11. Community Groups & Feed Posts
-    r = client.get("/api/community/groups")
-    assert r.status_code == 200
-    groups = r.json()
-    assert len(groups) >= 4
-
-    p_data = {
-        "content": "¡Probando el sistema de comunidad en VitalCore! 🔥",
-        "tag": "Progreso"
-    }
-    r = client.post(f"/api/community/posts?user_id={user_id}", json=p_data)
-    assert r.status_code == 200
-    post_id = r.json()["post_id"]
-
-    r = client.post(f"/api/community/posts/{post_id}/like")
-    assert r.status_code == 200
-    print(f"✅ 11. Grupos de Comunidad & Publicaciones en Feed (Post #{post_id} creado y likeado): OK")
-
-    # 12. Tier Upgrades ($25, $35, $50 USD)
+    # 9. Simulación de niveles de membresía ($25, $35, $50 USD)
     for t_name, price in [("inicial", 25), ("premium", 35), ("pro", 50)]:
         r = client.post(f"/api/users/{user_id}/upgrade", json={"tier": t_name, "days_to_add": 30})
         assert r.status_code == 200
         assert r.json()["tier_price_usd"] == price
-    print("✅ 12. Pasarela de Membresías Recurrentes ($25 Inicial, $35 Premium, $50 Pro): OK")
+    print("✅ 9. Simulación de Membresías ($25 Inicial, $35 Premium, $50 Pro): OK")
 
     # Reset back to pro
     client.post(f"/api/users/{user_id}/upgrade", json={"tier": "pro", "days_to_add": 28})
 
-    # 13. Admin Panel & MRR Calculation
-    r = client.get("/api/admin/metrics?admin_email=sposada2026@udec.cl")
+    # 10. Admin Panel & MRR Calculation
+    r = client.get("/api/admin/metrics", headers=auth_headers)
     assert r.status_code == 200
     m_data = r.json()
     assert m_data["mrr_usd"] > 0
-    print(f"✅ 13. Métricas Financieras de Admin (MRR: ${m_data['mrr_usd']} USD, ARR: ${m_data['arr_usd']} USD): OK")
+    print(f"✅ 10. Métricas Financieras de Admin (MRR: ${m_data['mrr_usd']} USD, ARR: ${m_data['arr_usd']} USD): OK")
 
-    r = client.get("/api/admin/users?admin_email=sposada2026@udec.cl")
+    r = client.get("/api/admin/users", headers=auth_headers)
     assert r.status_code == 200
     u_list = r.json()
     assert len(u_list) >= 6
-    print(f"✅ 14. Directorio y Control de Permisos de Usuarios ({len(u_list)} usuarios auditados): OK")
+    print(f"✅ 11. Directorio y Control de Permisos de Usuarios ({len(u_list)} usuarios auditados): OK")
 
     print("\n==================================================")
     print("  🏆 TODAS LAS PRUEBAS PASARON EXITOSAMENTE (100%)")

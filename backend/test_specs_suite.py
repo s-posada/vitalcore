@@ -263,5 +263,26 @@ def test_spec03_scenario4_and_5_mcp_config_portable():
     assert data["mcpServers"]["vitalcore"]["args"] == ["./backend/mcp_server_stdio.py"]
 
 
+# ── REGRESIONES DE SEGURIDAD Y VALIDACIÓN ─────────────────────────────────────
+
+def test_admin_endpoints_require_signed_session():
+    assert client.get("/api/admin/users").status_code == 401
+    assert client.get(
+        "/api/admin/metrics",
+        headers={"Authorization": "Bearer token-forjado"},
+    ).status_code == 401
+
+
+def test_demo_login_cannot_self_assign_paid_tier():
+    response = client.post("/api/auth/session", json={
+        "email": "quality-audit@vitalcore.app",
+        "name": "Quality Audit",
+        "tier": "pro",
+    })
+    assert response.status_code == 200
+    assert response.json()["tier"] == "inicial"
+    assert response.json()["token_type"] == "bearer"
+
+
 if __name__ == "__main__":
     pytest.main(["-v", __file__])

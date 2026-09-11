@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { MessageCircle, X, Send, Sparkles, Loader2 } from 'lucide-react'
 import { avatarUrl } from '@/lib/avatar'
 import { API_BASE_URL as API } from '@/lib/api'
+import type { UserSession } from '@/lib/types'
 
 type ChatMsg = { role: 'user' | 'model'; text: string }
 
@@ -15,7 +16,7 @@ const QUICK_PROMPTS = [
 
 export default function ChatCoach() {
   const [open, setOpen] = useState(false)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<UserSession | null>(null)
   const [messages, setMessages] = useState<ChatMsg[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
@@ -51,7 +52,7 @@ export default function ChatCoach() {
       })
       const data = await res.json()
       setMessages((prev) => [...prev, { role: 'model', text: data.reply || 'No pude responder, intenta de nuevo.' }])
-    } catch (e) {
+    } catch {
       setMessages((prev) => [...prev, { role: 'model', text: 'No logré conectar con el servidor. Intenta de nuevo en unos segundos.' }])
     } finally {
       setSending(false)

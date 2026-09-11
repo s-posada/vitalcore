@@ -4,13 +4,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Salad, Dumbbell, Gem, ShieldCheck, Settings, Crown } from 'lucide-react'
 import { avatarUrl } from '@/lib/avatar'
+import { API_BASE_URL as API } from '@/lib/api'
+import type { UserSession } from '@/lib/types'
 
-export default function Navbar() {
-  const pathname = usePathname()
-  const [user, setUser] = useState<any>(null)
-  const [menuOpen, setMenuOpen] = useState(false)
-
-  const TEAM_FOUNDERS = [
+const TEAM_FOUNDERS: UserSession[] = [
     {
       id: 1,
       name: 'Sebastian Posada Posada',
@@ -81,20 +78,21 @@ export default function Navbar() {
       is_admin: true,
       days_left: 365
     }
-  ]
+]
+
+export default function Navbar() {
+  const pathname = usePathname()
+  const [user, setUser] = useState<UserSession | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem('vc_user')
     if (saved) {
       try {
         setUser(JSON.parse(saved))
-      } catch (e) {
+      } catch {
         setUser(null)
       }
-    } else {
-      const defaultUser = TEAM_FOUNDERS[0]
-      localStorage.setItem('vc_user', JSON.stringify(defaultUser))
-      setUser(defaultUser)
     }
   }, [])
 
@@ -108,11 +106,22 @@ export default function Navbar() {
     { href: '/pricing', label: 'Planes', icon: Gem },
   ]
 
-  const handleSwitchUser = (demoUser: any) => {
-    localStorage.setItem('vc_user', JSON.stringify(demoUser))
-    setUser(demoUser)
-    setMenuOpen(false)
-    window.location.reload()
+  const handleSwitchUser = async (demoUser: UserSession) => {
+    try {
+      const response = await fetch(`${API}/api/auth/session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: demoUser.email, name: demoUser.name }),
+      })
+      if (!response.ok) throw new Error('No fue posible iniciar la sesión demo')
+      const session = await response.json() as UserSession
+      localStorage.setItem('vc_user', JSON.stringify(session))
+      setUser(session)
+      setMenuOpen(false)
+      window.location.reload()
+    } catch {
+      window.location.href = '/login'
+    }
   }
 
   const firstName = (user?.name || '').split(' ').slice(0, 2).join(' ')
@@ -213,7 +222,7 @@ export default function Navbar() {
                           onClick={() => handleSwitchUser(f)}
                           className="w-full text-left p-2 rounded-xl text-xs flex items-center gap-2.5 bg-slate-50 text-slate-700 hover:bg-primary-50 border border-slate-100 hover:border-primary-200 transition-all"
                         >
-                          <img src={f.avatar_url} alt={f.name} className="w-8 h-8 rounded-lg object-cover shrink-0" />
+                          <img src={f.avatar_url || avatarUrl(f.name)} alt={f.name} className="w-8 h-8 rounded-lg object-cover shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="font-bold truncate flex items-center gap-1 text-slate-900">
                               {f.email === 'martin.mellado@udec.cl' ? <Gem className="w-3 h-3 text-amber-500 shrink-0" /> : <Crown className="w-3 h-3 text-amber-500 shrink-0" />}

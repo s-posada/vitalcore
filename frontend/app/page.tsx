@@ -1,5 +1,4 @@
 'use client'
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Salad, Dumbbell, Flower2, Users, BarChart3, Gem, ArrowRight, Star, ShieldCheck, Sparkles, TrendingUp } from 'lucide-react'
 import { avatarUrl } from '@/lib/avatar'
@@ -7,9 +6,6 @@ import { avatarUrl } from '@/lib/avatar'
 const HERO_IMAGE = 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?auto=format&fit=crop&w=1600&q=80'
 
 export default function LandingPage() {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
-
   const features = [
     { icon: Salad, title: 'Nutrición de precisión con IA', desc: 'Plan mensual personalizado con macros exactos y recalculador adaptativo' },
     { icon: Dumbbell, title: 'Entrenamiento periodizado', desc: 'Rutinas estructuradas en 4 semanas con progresión y temporizador de descanso' },

@@ -10,7 +10,7 @@ from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 from database import User, UserProfile, NutritionPlan, WorkoutPlan, DailyLog
 from engine_registry import get_engine
-from datetime import datetime
+from datetime import datetime, UTC
 
 # ── DEFINICIÓN DE HERRAMIENTAS MCP (MANIFEST) ──────────────────────────────────
 MCP_TOOLS_MANIFEST = [
@@ -162,7 +162,7 @@ def tool_record_daily_log(db: Session, user_id: int, calories_consumed: int, wor
     if not user:
         return {"error": f"Usuario {user_id} no existe."}
 
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+    today_str = datetime.now(UTC).strftime("%Y-%m-%d")
     existing_log = db.query(DailyLog).filter(DailyLog.user_id == user_id, DailyLog.date == today_str).first()
 
     # Cálculo estimado de macros equilibrados si no se especifican
