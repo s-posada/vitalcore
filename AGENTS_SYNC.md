@@ -1,8 +1,8 @@
 # PROTOCOLO DE SINCRONIZACIÓN Y CONTEXTO VIVO DEL EQUIPO
 > **Archivo de referencia obligatoria para:** Usuario, Antigravity, Claude, Gemini y Codex.  
 > **Ubicación:** `vitalcore/AGENTS_SYNC.md`  
-> **Última sincronización:** 2026-09-11 00:58 UTC-3
-> **Rama activa principal:** `feat/specs-01-02-03` | **Base remota:** `origin/fix/borrar-headers`
+> **Última sincronización:** 2026-09-11 04:15 UTC-3
+> **Rama activa principal:** `main` (mergeada desde `feat/specs-01-02-03`, fast-forward, sin conflictos) | **Estado:** deploy backend LIVE en Render, frontend Vercel bloqueado por SSO (ver §2.1)
 
 ---
 
@@ -55,6 +55,8 @@ Cada vez que un agente (Claude, Gemini, Codex, Antigravity) o desarrollador comi
 > 2. Ve a **Settings** → **Deployment Protection**.
 > 3. En la sección **Vercel Authentication**, cambia la opción a **Disabled** y guarda los cambios.
 > A partir de ese momento, la URL `https://frontend-s-posada.vercel.app` cargará de inmediato para cualquier usuario o agente sin solicitar inicio de sesión en Vercel.
+>
+> **Verificado 2026-09-11 04:15 (Claude):** confirmado vía WebFetch que `frontend-s-posada.vercel.app` y `frontend-n9zmm5uk4-s-posada.vercel.app` (deploy del commit `510fe9a`, status "Ready"/"Latest" en el dashboard) siguen redirigiendo (302) a `vercel.com/sso-api`. **Sigue pendiente que alguien con acceso admin al proyecto Vercel desactive "Vercel Authentication" en Deployment Protection.** No reintentar el diagnóstico — solo verificar si ya se desactivó y actualizar esta línea con la fecha.
 
 ---
 
@@ -78,6 +80,7 @@ Cada vez que un agente (Claude, Gemini, Codex, Antigravity) o desarrollador comi
 | **2026-09-10 23:45** | Antigravity | `feat/specs-01-02-03` | Creación de `AGENTS_SYNC.md` como fuente única de verdad para el equipo (Usuario, Claude, Gemini, Codex). |
 | **2026-09-11 00:58** | Codex | `feat/specs-01-02-03` | Auditoría integral: sesión admin firmada, validación, lifespan FastAPI, tipado frontend, Next.js 16 sin vulnerabilidades, CI, Docker y documentación profesional. |
 | **2026-09-11 01:12** | Antigravity | `feat/specs-01-02-03` | Identificación y registro de dominios de Vercel (`frontend-s-posada.vercel.app`), diagnóstico de SSO y guía para desactivar Deployment Protection. |
+| **2026-09-11 04:15** | Claude (Sonnet 5) | `main` | Merge fast-forward de `feat/specs-01-02-03` → `main` y push a `origin/main`. Confirmado deploy LIVE en Render para `vitalcore-api` y `vitalcore` (backend duplicado, mismo commit `510fe9a`). Confirmado (WebFetch) que el frontend Vercel sigue con SSO activo — no está resuelto, solo verificado que persiste. Aviso a los compañeros pendiente de enviar hasta que se desactive el SSO. |
 
 ---
 
