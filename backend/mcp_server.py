@@ -22,16 +22,19 @@ MAX_HEIGHT_CM = 250.0
 MCP_TOOLS_MANIFEST = [
     {
         "name": "get_user_biometrics_and_progress",
-        "description": "Obtiene los datos biométricos actuales del usuario, su objetivo, estado de suscripción y últimos registros de actividad diaria (calorías, racha, peso).",
+        "description": "Obtiene los datos biométricos de salud y nutrición del usuario, su objetivo metabólico, TDEE, IMC, plan nutricional activo y últimos registros de telemetría (peso, calorías, agua). Puedes consultar pasando el user_id (ej: 1) o el correo/nombre del usuario (ej: 'sposada2026@udec.cl', 'andresburboa@udec.cl', 'Sebastian', 'Catalina').",
         "parameters": {
             "type": "object",
             "properties": {
                 "user_id": {
                     "type": "integer",
-                    "description": "ID numérico del usuario en VitalCore"
+                    "description": "ID numérico del usuario en VitalCore (opcional si se provee email o nombre)"
+                },
+                "email_or_name": {
+                    "type": "string",
+                    "description": "Correo electrónico institucional o nombre del usuario (ej: 'sposada2026@udec.cl', 'Sebastian')"
                 }
-            },
-            "required": ["user_id"]
+            }
         }
     },
     {
@@ -130,14 +133,29 @@ MCP_TOOLS_MANIFEST = [
 
 
 # ── IMPLEMENTACIÓN DE LAS FUNCIONES DE HERRAMIENTA ─────────────────────────────
-def tool_get_user_biometrics(db: Session, user_id: int) -> Dict[str, Any]:
-    user = db.query(User).filter(User.id == user_id).first()
+def tool_get_user_biometrics(db: Session, user_id: Optional[int] = None, email_or_name: Optional[str] = None) -> Dict[str, Any]:
+    user = None
+    if email_or_name:
+        clean = str(email_or_name).strip()
+        user = db.query(User).filter(
+            (User.email.ilike(f"%{clean}%")) | (User.name.ilike(f"%{clean}%"))
+        ).first()
+    if not user and user_id is not None:
+        try:
+            uid = int(user_id)
+            user = db.query(User).filter(User.id == uid).first()
+        except (ValueError, TypeError):
+            pass
     if not user:
-        return {"error": f"Usuario {user_id} no encontrado en la base de datos."}
+        # Default al usuario principal si no se especificó nada
+        user = db.query(User).filter(User.id == 1).first()
 
-    profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
-    plan = db.query(NutritionPlan).filter(NutritionPlan.user_id == user_id).order_by(NutritionPlan.created_at.desc()).first()
-    logs = db.query(DailyLog).filter(DailyLog.user_id == user_id).order_by(DailyLog.date.desc()).limit(5).all()
+    if not user:
+        return {"error": "Usuario no encontrado en la base de datos de VitalCore."}
+
+    profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
+    plan = db.query(NutritionPlan).filter(NutritionPlan.user_id == user.id).order_by(NutritionPlan.created_at.desc()).first()
+    logs = db.query(DailyLog).filter(DailyLog.user_id == user.id).order_by(DailyLog.date.desc()).limit(5).all()
 
     recent_summary = []
     for l in logs:

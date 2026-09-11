@@ -110,12 +110,27 @@ def handle_request(req: dict) -> dict:
         db = SessionLocal()
         try:
             if tool_name == "get_user_biometrics_and_progress":
-                res = tool_get_user_biometrics(db, user_id=arguments.get("user_id", 1))
+                res = tool_get_user_biometrics(
+                    db,
+                    user_id=arguments.get("user_id"),
+                    email_or_name=arguments.get("email_or_name")
+                )
             elif tool_name == "search_catalog_semantic":
                 res = tool_search_semantic(
                     query=arguments.get("query", ""),
                     category=arguments.get("category", "todas"),
                     limit=arguments.get("limit", 3)
+                )
+            elif tool_name == "update_user_profile":
+                from mcp_server import tool_update_user_profile
+                res = tool_update_user_profile(
+                    db,
+                    user_id=arguments.get("user_id", 1),
+                    weight_kg=arguments.get("weight_kg"),
+                    target_weight_kg=arguments.get("target_weight_kg"),
+                    goal=arguments.get("goal"),
+                    activity_level=arguments.get("activity_level"),
+                    height_cm=arguments.get("height_cm")
                 )
             elif tool_name == "record_daily_log_quick":
                 res = tool_record_daily_log(
