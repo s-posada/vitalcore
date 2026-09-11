@@ -64,15 +64,15 @@ export default function PricingPage() {
       price: '25',
       period: 'USD / mes',
       badge: 'Básico Esencial',
-      desc: 'Ideal para quienes inician su transformación física y desean ordenar sus hábitos alimenticios.',
+      desc: 'Ideal para personas que inician el cuidado riguroso de su salud y desean estructurar sus hábitos nutricionales.',
       color: 'emerald',
       features: [
-        { icon: Salad, text: 'Plan Nutricional personalizado de 30 días' },
-        { icon: Dumbbell, text: 'Rutina de entrenamiento básica estructurada' },
-        { icon: BarChart3, text: 'Dashboard de seguimiento calórico y racha' },
-        { icon: Users, text: 'Acceso a grupos comunitarios generales' },
-        { icon: Ticket, text: 'Acceso a 1 Masterclass mensual en vivo' },
-        { icon: Droplet, text: 'Registro diario de hidratación y peso' }
+        { icon: Salad, text: 'Plan Nutricional de precisión para 30 días' },
+        { icon: Dumbbell, text: 'Guía de actividad física y salud postural' },
+        { icon: BarChart3, text: 'Dashboard de seguimiento calórico, macros y racha' },
+        { icon: Droplet, text: 'Registro diario de hidratación y evolución de peso' },
+        { icon: Bot, text: 'Asistente IA para dudas nutricionales y hábitos' },
+        { icon: Sparkles, text: 'Base de conocimiento en salud preventiva' }
       ],
       cta: 'Elegir Plan Inicial'
     },
@@ -82,38 +82,36 @@ export default function PricingPage() {
       price: '35',
       period: 'USD / mes',
       badge: 'MÁS POPULAR',
-      desc: 'Para quienes buscan recomposición corporal acelerada, rutinas por mesociclos y salud mental.',
+      desc: 'Para quienes buscan optimización metabólica continua, recalculador automático de macros y seguimiento avanzado.',
       color: 'sky',
       highlighted: true,
       features: [
         { icon: Sparkles, text: 'Todo lo incluido en el Plan Inicial' },
         { icon: Bot, text: 'Algoritmo de IA Adaptativo con recalculador de macros' },
-        { icon: Dumbbell, text: 'Mesociclo de 4 semanas de Hipertrofia & Fuerza' },
-        { icon: Leaf, text: 'Catálogo completo de Meditaciones Guiadas por Voz' },
-        { icon: Mic, text: 'Acceso semanal a Talleres y Sesiones de Respiración en Vivo' },
-        { icon: Leaf, text: 'Grupos de Nutrición Avanzada & Meal Prep' },
-        { icon: Timer, text: 'Temporizador interactivo de descanso entre series' }
+        { icon: Salad, text: 'Pautas de nutrición metabólica & meal prep estructurado' },
+        { icon: TrendingUp, text: 'Métricas de adherencia nutricional y balance energético' },
+        { icon: Leaf, text: 'Monitoreo de biomarcadores y energía diaria' },
+        { icon: Timer, text: 'Temporizador de pausas activas y control de hábitos' }
       ],
       cta: 'Mejorar a Premium'
     },
     {
       id: 'pro',
-      name: 'Plan Pro Mastermind',
+      name: 'Plan Pro HealthTech',
       price: '50',
       period: 'USD / mes',
-      badge: 'MÁXIMO RENDIMIENTO',
-      desc: 'La experiencia definitiva: Biohacking, telemetría de longevidad y acceso VIP directo a especialistas.',
+      badge: 'MÁXIMA PRECISIÓN',
+      desc: 'La experiencia tecnológica definitiva: análisis predictivo de salud, telemetría nutricional y protocolos de longevidad.',
       color: 'amber',
       features: [
         { icon: Crown, text: 'Todo lo incluido en el Plan Premium' },
-        { icon: Rocket, text: 'Mastermind VIP exclusivo con Dr. Alarcón y directores' },
-        { icon: Dna, text: 'Protocolos avanzados de Longevidad celular y Wim Hof' },
-        { icon: Mic, text: 'Acceso total e ilimitado a todas las salas y Q&A en vivo' },
-        { icon: Zap, text: 'Soporte prioritario 24/7 y comunidad cerrada de alto rendimiento' },
-        { icon: Award, text: 'Insignia Dorada VIP en Feed y perfil de usuario' },
-        { icon: TrendingUp, text: 'Análisis predictivo de composición corporal con IA' }
+        { icon: TrendingUp, text: 'Análisis predictivo de salud y composición corporal con IA' },
+        { icon: Dna, text: 'Protocolos de longevidad metabólica y salud celular' },
+        { icon: Rocket, text: 'Telemetría de salud y sincronización con el agente autónomo' },
+        { icon: Zap, text: 'Asistente IA multimodal sin límites de consulta' },
+        { icon: Award, text: 'Insignia Pro en reportes y exportación de datos de salud' }
       ],
-      cta: 'Desbloquear Acceso Pro VIP'
+      cta: 'Desbloquear Acceso Pro HealthTech'
     }
   ]
 

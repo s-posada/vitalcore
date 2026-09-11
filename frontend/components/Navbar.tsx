@@ -13,7 +13,7 @@ const TEAM_FOUNDERS: UserSession[] = [
       name: 'Sebastian Posada Posada',
       email: 'sposada2026@udec.cl',
       role: 'CEO & Co-Fundador',
-      avatar_url: avatarUrl('Sebastian Posada Posada', 'male'),
+      avatar_url: '/team/sebastian.png',
       tier: 'pro',
       is_admin: true,
       days_left: 30
@@ -23,7 +23,7 @@ const TEAM_FOUNDERS: UserSession[] = [
       name: 'Andres Gonzalo Burboa Lizama',
       email: 'andresburboa@udec.cl',
       role: 'CTO & Co-Fundador',
-      avatar_url: avatarUrl('Andres Gonzalo Burboa Lizama', 'male'),
+      avatar_url: '/team/andy.png',
       tier: 'pro',
       is_admin: true,
       days_left: 30
@@ -33,7 +33,7 @@ const TEAM_FOUNDERS: UserSession[] = [
       name: 'Catalina Antonia Vergara Donoso',
       email: 'cavergara2019@udec.cl',
       role: 'Chief Health Officer & Co-Fundadora',
-      avatar_url: avatarUrl('Catalina Antonia Vergara Donoso', 'female'),
+      avatar_url: '/team/cata.png',
       tier: 'pro',
       is_admin: true,
       days_left: 30
@@ -43,7 +43,7 @@ const TEAM_FOUNDERS: UserSession[] = [
       name: 'Fabian Alonso Alvarado Arriagada',
       email: 'falvarado2016@udec.cl',
       role: 'Head of AI & Co-Fundador',
-      avatar_url: avatarUrl('Fabian Alonso Alvarado Arriagada', 'male'),
+      avatar_url: '/team/fabian.png',
       tier: 'pro',
       is_admin: true,
       days_left: 30
@@ -53,7 +53,7 @@ const TEAM_FOUNDERS: UserSession[] = [
       name: 'Marian Garcia Cruz',
       email: 'margarcia2026@udec.cl',
       role: 'Head of Product & Co-Fundadora',
-      avatar_url: avatarUrl('Marian Garcia Cruz', 'female'),
+      avatar_url: '/team/mariam.png',
       tier: 'pro',
       is_admin: true,
       days_left: 30
@@ -63,7 +63,7 @@ const TEAM_FOUNDERS: UserSession[] = [
       name: 'Yenny Sanchez Aguilar',
       email: 'yesanchez2026@udec.cl',
       role: 'COO & Co-Fundador',
-      avatar_url: avatarUrl('Yenny Sanchez Aguilar', 'male'),
+      avatar_url: '/team/yenny.png',
       tier: 'pro',
       is_admin: true,
       days_left: 30

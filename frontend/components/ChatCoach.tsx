@@ -8,10 +8,10 @@ import type { UserSession } from '@/lib/types'
 type ChatMsg = { role: 'user' | 'model'; text: string }
 
 const QUICK_PROMPTS = [
-  '¿Cómo voy con mi peso?',
-  'Dame un consejo de nutrición',
-  'Necesito motivación',
-  '¿Qué meditación me recomiendas?',
+  '¿Cómo voy con mi balance de nutrición?',
+  'Dame un consejo de nutrición saludable',
+  '¿Cómo optimizar mi energía y hábitos de salud?',
+  '¿Qué alimentos potencian mi bienestar hoy?',
 ]
 
 export default function ChatCoach() {
@@ -70,7 +70,7 @@ export default function ChatCoach() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-bold leading-tight">Coach VitalCore</div>
-              <div className="text-[11px] text-white/80 leading-tight">Nutrición · Entrenamiento · Ánimo</div>
+              <div className="text-[11px] text-white/80 leading-tight">Salud · Nutrición de Precisión · IA</div>
             </div>
             <button
               onClick={() => setOpen(false)}
@@ -86,7 +86,7 @@ export default function ChatCoach() {
             {messages.length === 0 && (
               <div className="space-y-3">
                 <p className="text-sm text-slate-500 leading-relaxed">
-                  Hola{user?.name ? `, ${user.name.split(' ')[0]}` : ''}. Puedo ayudarte con tu plan de nutrición, tu rutina, meditación o solo darte un empujón de ánimo.
+                  Hola{user?.name ? `, ${user.name.split(' ')[0]}` : ''}. Soy tu asistente inteligente de Salud y Nutrición VitalCore. Puedo guiarte con tu plan alimenticio, macros, hábitos saludables y monitoreo de tu bienestar integral.
                 </p>
                 <div className="flex flex-col gap-2">
                   {QUICK_PROMPTS.map((q) => (

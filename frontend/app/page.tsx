@@ -1,33 +1,33 @@
 'use client'
 import Link from 'next/link'
-import { Salad, Dumbbell, Flower2, Users, BarChart3, Gem, ArrowRight, Star, ShieldCheck, Sparkles, TrendingUp } from 'lucide-react'
+import { Salad, Dumbbell, Activity, ShieldCheck, BarChart3, Gem, ArrowRight, Star, Sparkles, TrendingUp, HeartPulse, Cpu, Users } from 'lucide-react'
 import { avatarUrl } from '@/lib/avatar'
 
-const HERO_IMAGE = 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?auto=format&fit=crop&w=1600&q=80'
+const HERO_IMAGE = 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1600&q=80'
 
 export default function LandingPage() {
   const features = [
-    { icon: Salad, title: 'Nutrición de precisión con IA', desc: 'Plan mensual personalizado con macros exactos y recalculador adaptativo' },
-    { icon: Dumbbell, title: 'Entrenamiento periodizado', desc: 'Rutinas estructuradas en 4 semanas con progresión y temporizador de descanso' },
-    { icon: Flower2, title: 'Meditación guiada por voz', desc: 'Narración nativa en español y visualizador de ritmo respiratorio anti-cortisol' },
-    { icon: Users, title: 'Comunidad & masterminds', desc: 'Eventos en vivo, canales temáticos y networking con especialistas en salud' },
-    { icon: BarChart3, title: 'Dashboard & seguimiento', desc: 'Registro biométrico en tiempo real de calorías, peso y racha diaria' },
+    { icon: Salad, title: 'Nutrición de precisión con IA', desc: 'Planes nutricionales adaptados a tu metabolismo, requerimientos calóricos y objetivos de salud.' },
+    { icon: HeartPulse, title: 'Salud y biomarcadores', desc: 'Monitoreo de indicadores clave de salud, niveles de energía, hábitos y adherencia diaria.' },
+    { icon: Cpu, title: 'Tecnología e Inteligencia Artificial', desc: 'Algoritmos avanzados que recalibran tus metas de bienestar según tu progreso real.' },
+    { icon: Activity, title: 'Salud activa y vitalidad', desc: 'Estrategias de movimiento y optimización metabólica para potenciar tu longevidad.' },
+    { icon: BarChart3, title: 'Dashboard & métricas clínicas', desc: 'Analítica integral de ingesta, balance calórico, hidratación y evolución en el tiempo.' },
     { icon: Gem, title: 'Membresías flexibles', desc: 'Acceso escalonado en 3 planes: Inicial ($25), Premium ($35) y Pro ($50 USD)' },
   ]
 
   const testimonials = [
-    { name: 'Camila Rojas', role: 'Miembro Premium · 4 meses', gender: 'female' as const, quote: 'Bajé 6 kilos sin pasar hambre. El plan de comidas se ajusta solo cuando registro mi progreso.' },
-    { name: 'Diego Fuentes', role: 'Miembro Pro · 7 meses', gender: 'male' as const, quote: 'Las rutinas por mesociclos me sacaron de un estancamiento de meses. La comunidad ayuda a no bajar los brazos.' },
-    { name: 'Valentina Soto', role: 'Miembro Inicial · 2 meses', gender: 'female' as const, quote: 'Las meditaciones guiadas se volvieron parte de mi rutina de sueño. Simple, directo y en español.' },
+    { name: 'Camila Rojas', role: 'Miembro Premium · 4 meses', gender: 'female' as const, quote: 'Transformé mis hábitos alimenticios sin pasar hambre. La tecnología de la app calcula exactamente lo que mi cuerpo necesita.' },
+    { name: 'Diego Fuentes', role: 'Miembro Pro · 7 meses', gender: 'male' as const, quote: 'Como profesional, aprecio la precisión de los datos. VitalCore me ayudó a estabilizar mis niveles de energía y salud diaria.' },
+    { name: 'Valentina Soto', role: 'Miembro Inicial · 2 meses', gender: 'female' as const, quote: 'Una plataforma pensada para quienes de verdad queremos cuidar nuestra salud y nutrición con base científica y tecnológica.' },
   ]
 
   const founders = [
-    { name: 'Sebastian Posada Posada', role: 'CEO & Co-Fundador', email: 'sposada2026@udec.cl', gender: 'male' as const },
-    { name: 'Andres Gonzalo Burboa Lizama', role: 'CTO & Co-Fundador', email: 'andresburboa@udec.cl', gender: 'male' as const },
-    { name: 'Catalina Antonia Vergara Donoso', role: 'Chief Health Officer & Co-Fundadora', email: 'cavergara2019@udec.cl', gender: 'female' as const },
-    { name: 'Fabian Alonso Alvarado Arriagada', role: 'Head of AI & Co-Fundador', email: 'falvarado2016@udec.cl', gender: 'male' as const },
-    { name: 'Marian Garcia Cruz', role: 'Head of Product & Co-Fundadora', email: 'margarcia2026@udec.cl', gender: 'female' as const },
-    { name: 'Yenny Sanchez Aguilar', role: 'COO & Co-Fundador', email: 'yesanchez2026@udec.cl', gender: 'male' as const },
+    { name: 'Sebastian Posada Posada', role: 'CEO & Co-Fundador', email: 'sposada2026@udec.cl', gender: 'male' as const, avatar: '/team/sebastian.png' },
+    { name: 'Andres Gonzalo Burboa Lizama', role: 'CTO & Co-Fundador', email: 'andresburboa@udec.cl', gender: 'male' as const, avatar: '/team/andy.png' },
+    { name: 'Catalina Antonia Vergara Donoso', role: 'Chief Health Officer & Co-Fundadora', email: 'cavergara2019@udec.cl', gender: 'female' as const, avatar: '/team/cata.png' },
+    { name: 'Fabian Alonso Alvarado Arriagada', role: 'Head of AI & Co-Fundador', email: 'falvarado2016@udec.cl', gender: 'male' as const, avatar: '/team/fabian.png' },
+    { name: 'Marian Garcia Cruz', role: 'Head of Product & Co-Fundadora', email: 'margarcia2026@udec.cl', gender: 'female' as const, avatar: '/team/mariam.png' },
+    { name: 'Yenny Sanchez Aguilar', role: 'COO & Co-Fundador', email: 'yesanchez2026@udec.cl', gender: 'male' as const, avatar: '/team/yenny.png' },
   ]
 
   return (
@@ -67,17 +67,16 @@ export default function LandingPage() {
             {/* Institutional Tag */}
             <div className="inline-flex items-center gap-2 bg-white border border-slate-200 rounded-full px-4 py-1.5 text-xs text-slate-700 shadow-sm">
               <ShieldCheck className="w-3.5 h-3.5 text-primary-700" />
-              <span>Incubado en la Universidad de Concepción</span>
+              <span>Incubado en la Universidad de Concepción • HealthTech</span>
             </div>
 
             <h1 className="text-5xl md:text-6xl xl:text-7xl font-black leading-tight tracking-tight">
               Salud, nutrición y <br />
-              <span className="gradient-text">longevidad con IA</span>
+              <span className="gradient-text">tecnología inteligente</span>
             </h1>
 
             <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-              Un plan de nutrición y entrenamiento que se adapta a ti cada semana, meditaciones guiadas por voz
-              y una comunidad activa. Todo en una sola plataforma.
+              La plataforma HealthTech para toda persona que busca cuidar su vida, optimizar su nutrición y potenciar su salud con inteligencia artificial y ciencia de datos.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
@@ -106,7 +105,7 @@ export default function LandingPage() {
             <div className="rounded-3xl overflow-hidden shadow-2xl">
               <img
                 src={HERO_IMAGE}
-                alt="Persona entrenando con seguimiento de VitalCore"
+                alt="Nutrición y estilo de vida saludable con VitalCore"
                 className="w-full h-[420px] lg:h-[520px] object-cover"
                 loading="eager"
               />
@@ -119,7 +118,7 @@ export default function LandingPage() {
               </div>
               <div>
                 <div className="text-sm font-black text-slate-900">+12.500 planes generados</div>
-                <div className="text-[11px] text-slate-500">Nutrición, entrenamiento y meditación</div>
+                <div className="text-[11px] text-slate-500">Nutrición de precisión y salud digital</div>
               </div>
             </div>
           </div>
@@ -223,7 +222,7 @@ export default function LandingPage() {
             {founders.map((founder, idx) => (
               <div key={idx} className="card p-5 flex items-center gap-4 hover:border-primary-300 transition-all">
                 <img
-                  src={avatarUrl(founder.name, founder.gender)}
+                  src={founder.avatar || avatarUrl(founder.name, founder.gender)}
                   alt={founder.name}
                   className="w-14 h-14 rounded-2xl object-cover"
                 />
@@ -244,12 +243,12 @@ export default function LandingPage() {
           <div className="inline-flex items-center gap-2 text-xs font-bold px-3 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-200">
             <Sparkles className="w-3.5 h-3.5" /> Empieza hoy
           </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900">¿Listo para transformar tu salud?</h2>
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900">¿Listo para transformar tu salud y nutrición?</h2>
           <p className="text-slate-600 text-sm max-w-lg mx-auto">
-            Únete a la comunidad de VitalCore. Tu plan mensual adaptativo de nutrición, entrenamiento y meditación te espera.
+            Comienza hoy con VitalCore. Tu plan mensual adaptativo de nutrición de precisión, biomarcadores y salud preventiva te espera.
           </p>
           <Link href="/onboarding" className="btn-primary text-base py-4 px-10 inline-flex items-center gap-2 shadow-xl shadow-primary-500/30">
-            Crear mi plan de salud integral
+            Crear mi plan de salud y nutrición
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

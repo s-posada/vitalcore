@@ -215,7 +215,7 @@ export default function DashboardPage() {
               {stats?.streak_days || 14} <span className="text-sm font-medium text-slate-400">días invicto</span>
             </div>
             <div className="text-xs text-primary-700 mt-2 flex items-center gap-1">
-              <Check className="w-3.5 h-3.5" /> Entrenamientos & meditaciones constantes
+              <Check className="w-3.5 h-3.5" /> Adherencia y nutrición constante
             </div>
           </div>
 
@@ -247,14 +247,14 @@ export default function DashboardPage() {
 
           <div className="card">
             <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-2">
-              <span>SESIONES COMPLETADAS</span>
+              <span>SESIONES Y ACTIVIDAD</span>
               <Dumbbell className="w-4 h-4" />
             </div>
             <div className="text-3xl font-black text-slate-900 flex items-baseline gap-1">
               {stats?.workouts_this_week || 5} <span className="text-sm font-medium text-slate-400">esta semana</span>
             </div>
             <div className="text-xs text-sky-700 mt-2">
-              + {stats?.meditations_this_week || 4} meditaciones guiadas
+              + {stats?.meditations_this_week || 4} días de pauta nutricional cumplida
             </div>
           </div>
         </div>
@@ -503,7 +503,7 @@ export default function DashboardPage() {
                       onChange={(e) => setLogForm({ ...logForm, meditation: e.target.checked })}
                       className="w-4 h-4 rounded text-primary-500 focus:ring-primary-500 focus:ring-offset-0 border-slate-300"
                     />
-                    <span className="text-xs font-semibold text-slate-900 inline-flex items-center gap-1.5"><Flower2 className="w-4 h-4" /> Meditación / Respiración Hecha</span>
+                    <span className="text-xs font-semibold text-slate-900 inline-flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Nutrición & Hábitos Saludables Cumplidos</span>
                   </label>
                 </div>
 

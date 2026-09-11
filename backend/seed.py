@@ -21,7 +21,7 @@ FOUNDERS_EQUIPO_2 = [
         "tier": "pro",
         "is_admin": True,
         "days_left": 30,
-        "avatar_url": "https://randomuser.me/api/portraits/men/12.jpg"
+        "avatar_url": "/team/sebastian.png"
     },
     {
         "email": "andresburboa@udec.cl",
@@ -30,7 +30,7 @@ FOUNDERS_EQUIPO_2 = [
         "tier": "pro",
         "is_admin": True,
         "days_left": 30,
-        "avatar_url": "https://randomuser.me/api/portraits/men/32.jpg"
+        "avatar_url": "/team/andy.png"
     },
     {
         "email": "cavergara2019@udec.cl",
@@ -39,7 +39,7 @@ FOUNDERS_EQUIPO_2 = [
         "tier": "pro",
         "is_admin": True,
         "days_left": 30,
-        "avatar_url": "https://randomuser.me/api/portraits/women/44.jpg"
+        "avatar_url": "/team/cata.png"
     },
     {
         "email": "falvarado2016@udec.cl",
@@ -48,7 +48,7 @@ FOUNDERS_EQUIPO_2 = [
         "tier": "pro",
         "is_admin": True,
         "days_left": 30,
-        "avatar_url": "https://randomuser.me/api/portraits/men/45.jpg"
+        "avatar_url": "/team/fabian.png"
     },
     {
         "email": "margarcia2026@udec.cl",
@@ -57,7 +57,7 @@ FOUNDERS_EQUIPO_2 = [
         "tier": "pro",
         "is_admin": True,
         "days_left": 30,
-        "avatar_url": "https://randomuser.me/api/portraits/women/65.jpg"
+        "avatar_url": "/team/mariam.png"
     },
     {
         "email": "yesanchez2026@udec.cl",
@@ -66,7 +66,7 @@ FOUNDERS_EQUIPO_2 = [
         "tier": "pro",
         "is_admin": True,
         "days_left": 30,
-        "avatar_url": "https://randomuser.me/api/portraits/men/67.jpg"
+        "avatar_url": "/team/yenny.png"
     }
 ]
 

@@ -10,12 +10,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "VitalCore — Tu Plataforma de Bienestar Integral",
-  description: "Nutrición personalizada, entrenamiento inteligente, meditación guiada y comunidad. Vive tu mejor versión con IA.",
-  keywords: "bienestar, nutrición, entrenamiento, meditación, IA, salud",
+  title: "VitalCore — Salud Inteligente y Nutrición de Precisión",
+  description: "Plataforma HealthTech para toda persona que cuida de su vida, su salud y su nutrición con inteligencia artificial y ciencia de datos.",
+  keywords: "salud, nutrición, healthtech, longevidad, inteligencia artificial, metabolismo, biometría",
   openGraph: {
-    title: "VitalCore",
-    description: "Vive tu mejor versión con IA",
+    title: "VitalCore — Salud y Nutrición de Precisión",
+    description: "Cuidado de salud inteligente y nutrición adaptativa con tecnología e IA.",
     type: "website",
   },
 };
