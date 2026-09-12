@@ -1,4 +1,5 @@
 'use client'
+import React, { useEffect } from 'react'
 import Link from 'next/link'
 import { Salad, Activity, ShieldCheck, BarChart3, Gem, ArrowRight, Star, Sparkles, TrendingUp, HeartPulse, Cpu, Users } from 'lucide-react'
 import { avatarUrl } from '@/lib/avatar'
@@ -30,6 +31,16 @@ export default function LandingPage() {
     { name: 'Yenny Sanchez Aguilar', role: 'COO & Co-Fundador', email: 'yesanchez2026@udec.cl', gender: 'male' as const, avatar: '/team/yenny.png' },
   ]
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash.includes('equipo')) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById('equipo')
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 250)
+      return () => clearTimeout(timer)
+    }
+  }, [])
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 overflow-x-hidden">
       {/* Nav */}
@@ -48,7 +59,20 @@ export default function LandingPage() {
 
         <div className="hidden md:flex items-center gap-6 text-sm text-slate-600">
           <Link href="/pricing" className="hover:text-slate-900 transition-colors">Precios</Link>
-          <Link href="#equipo" className="hover:text-slate-900 transition-colors">Equipo</Link>
+          <button
+            type="button"
+            id="nav-btn-equipo"
+            onClick={() => {
+              const el = document.getElementById('equipo')
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                try { history.pushState(null, '', '#equipo') } catch {}
+              }
+            }}
+            className="hover:text-slate-900 transition-colors cursor-pointer text-slate-600 bg-transparent border-0 p-0 text-sm font-normal"
+          >
+            Equipo
+          </button>
         </div>
 
         <div className="flex items-center gap-3">
@@ -183,7 +207,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── EQUIPO FUNDADOR (EQUIPO 2) & INVESTOR ──────────────────────────────── */}
-      <section id="equipo" className="py-24 px-6 bg-white border-y border-slate-200">
+      <section id="equipo" className="py-24 px-6 bg-white border-y border-slate-200 scroll-mt-20">
         <div className="max-w-6xl mx-auto space-y-12">
           <div className="text-center space-y-3">
             <div className="inline-flex items-center gap-2 text-xs font-bold px-3 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-200">
