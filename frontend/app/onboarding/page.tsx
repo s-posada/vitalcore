@@ -1,10 +1,11 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { avatarUrl } from '@/lib/avatar'
 import { Dumbbell, Flame, Scale, PersonStanding, Flower2, Check, Bot, Loader2, Rocket, AlertTriangle } from 'lucide-react'
 import { API_BASE_URL as API } from '@/lib/api'
+import type { UserProfile, UserSession } from '@/lib/types'
 
 const GOALS = [
   { id: 'gain_muscle', icon: Dumbbell, label: 'Ganar masa muscular', desc: 'Aumentar volumen y fuerza' },
@@ -28,6 +29,7 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [goals, setGoals] = useState<string[]>([])
+  const [session, setSession] = useState<UserSession | null>(null)
   const [form, setForm] = useState({
     name: '', email: '', age: '', weight_kg: '', height_cm: '',
     gender: 'male', activity_level: 'moderate', target_weight_kg: '',
@@ -35,7 +37,44 @@ export default function OnboardingPage() {
 
   const totalSteps = 5
 
+  // Al entrar desde "Editar" del dashboard, el formulario llega con los datos
+  // ya conocidos: antes aparecía vacío y guardar creaba una cuenta demo nueva.
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem('vc_user')
+      const storedProfile = localStorage.getItem('vc_profile')
+      const u = storedUser ? JSON.parse(storedUser) as UserSession : null
+      const pr = storedProfile ? JSON.parse(storedProfile) as UserProfile : null
+      if (u) setSession(u)
+      const profile = { ...(u?.profile || {}), ...(pr || {}) } as UserProfile
+      setForm((f) => ({
+        ...f,
+        name: u?.name || f.name,
+        email: u?.email || f.email,
+        age: profile.age ? String(profile.age) : f.age,
+        weight_kg: profile.weight_kg ? String(profile.weight_kg) : f.weight_kg,
+        height_cm: profile.height_cm ? String(profile.height_cm) : f.height_cm,
+        target_weight_kg: profile.target_weight_kg ? String(profile.target_weight_kg) : f.target_weight_kg,
+        gender: profile.gender || f.gender,
+        activity_level: profile.activity_level || f.activity_level,
+      }))
+      if (pr?.goals?.length) setGoals(pr.goals)
+      else if (profile.goal) setGoals([profile.goal])
+    } catch {}
+  }, [])
+
   const update = (field: string, val: string) => setForm(p => ({ ...p, [field]: val }))
+
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
+  const numbersOk =
+    parseInt(form.age) >= 13 && parseInt(form.age) <= 120 &&
+    parseFloat(form.weight_kg) > 20 && parseFloat(form.weight_kg) <= 400 &&
+    parseFloat(form.height_cm) >= 100 && parseFloat(form.height_cm) <= 250
+
+  const stepBlocked =
+    (step === 1 && (!form.name.trim() || !emailOk)) ||
+    (step === 2 && !numbersOk) ||
+    (step === 3 && goals.length === 0)
 
   // Selección múltiple de objetivos: el primero elegido es el principal
   const toggleGoal = (id: string) => {
@@ -46,15 +85,22 @@ export default function OnboardingPage() {
     setLoading(true)
     setError('')
     try {
-      // Create/get user
-      const userRes = await fetch(`${API}/api/auth/session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: form.email || 'demo@vitalcore.app', name: form.name || 'Usuario Demo', avatar_url: avatarUrl(form.name || 'usuario') }),
-      })
-      if (!userRes.ok) throw new Error('No fue posible crear la sesión')
-      const user = await userRes.json()
-      localStorage.setItem('vc_user', JSON.stringify(user))
+      // Con sesión activa se conserva la cuenta; sin ella se crea una nueva.
+      let user = session
+      if (!user) {
+        const userRes = await fetch(`${API}/api/auth/session`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: form.email.trim(),
+            name: form.name.trim(),
+            avatar_url: avatarUrl(form.name || 'usuario'),
+          }),
+        })
+        if (!userRes.ok) throw new Error('No fue posible crear la sesión')
+        user = await userRes.json() as UserSession
+        localStorage.setItem('vc_user', JSON.stringify(user))
+      }
 
       // Complete onboarding (el backend recibe el objetivo principal;
       // la lista completa de objetivos queda en el perfil local)
@@ -162,8 +208,12 @@ export default function OnboardingPage() {
           {/* Step 1 — Name & Email */}
           {step === 1 && (
             <div className="animate-slide-up">
-              <h2 className="text-2xl font-bold mb-2">¡Hola! ¿Cómo te llamas?</h2>
-              <p className="text-slate-500 mb-6 text-sm">Empecemos por conocernos un poco</p>
+              <h2 className="text-2xl font-bold mb-2">
+                {session ? `Hola de nuevo, ${form.name.split(' ')[0]}` : '¡Hola! ¿Cómo te llamas?'}
+              </h2>
+              <p className="text-slate-500 mb-6 text-sm">
+                {session ? 'Revisa y actualiza tus datos de origen' : 'Empecemos por conocernos un poco'}
+              </p>
               <div className="space-y-4">
                 <div>
                   <label className="text-sm text-slate-600 mb-2 block">Tu nombre</label>
@@ -171,7 +221,19 @@ export default function OnboardingPage() {
                 </div>
                 <div>
                   <label className="text-sm text-slate-600 mb-2 block">Tu email</label>
-                  <input className="input-dark" type="email" placeholder="tu@email.com" value={form.email} onChange={e => update('email', e.target.value)} />
+                  <input
+                    className="input-dark disabled:bg-slate-100 disabled:text-slate-500"
+                    type="email"
+                    placeholder="tu@email.com"
+                    value={form.email}
+                    disabled={!!session}
+                    onChange={e => update('email', e.target.value)}
+                  />
+                  {session && (
+                    <p className="text-[11px] text-slate-400 mt-1.5">
+                      Estás actualizando los datos de tu cuenta actual.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -211,6 +273,11 @@ export default function OnboardingPage() {
                   <input className="input-dark" type="number" placeholder="Ej: 74" value={form.target_weight_kg} onChange={e => update('target_weight_kg', e.target.value)} />
                 </div>
               </div>
+              {!numbersOk && (form.age || form.weight_kg || form.height_cm) && (
+                <p className="mt-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                  Completa edad (13-120), peso (20-400 kg) y estatura (100-250 cm) para continuar.
+                </p>
+              )}
               {(imc || tdee) && (
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   {imc && (
@@ -334,7 +401,7 @@ export default function OnboardingPage() {
             )}
             {step < totalSteps ? (
               <button onClick={() => setStep(s => s + 1)}
-                disabled={(step === 1 && !form.name) || (step === 3 && goals.length === 0)}
+                disabled={stepBlocked}
                 className="btn-primary flex-1 disabled:opacity-40 disabled:cursor-not-allowed">
                 Siguiente →
               </button>

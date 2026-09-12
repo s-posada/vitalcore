@@ -33,7 +33,9 @@ from mcp_server import (
 )
 
 MAX_TOOL_ROUNDS = 4
-REQUEST_TIMEOUT = 25.0
+# El plan gratuito de Render arranca en frío y algunos modelos razonan antes de
+# responder: un margen corto hacía caer el chat al respaldo de reglas.
+REQUEST_TIMEOUT = 55.0
 
 # Herramientas que modifican datos: la UI refresca el dashboard cuando se usan.
 MUTATING_TOOLS = {"update_user_profile", "record_daily_log", "generate_nutrition_plan"}

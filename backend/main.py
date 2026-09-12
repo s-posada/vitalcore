@@ -1014,28 +1014,45 @@ def ai_diagnostics():
 
 
 @app.post("/api/ai/diagnostics/probe")
-async def ai_diagnostics_probe():
-    """Prueba en vivo contra la API de Gemini: resuelve modelo y pide una frase corta."""
+async def ai_diagnostics_probe(model: Optional[str] = None, timeout_s: float = 60.0):
+    """
+    Prueba en vivo contra la API de Gemini y mide la latencia real del modelo.
+    `?model=` permite comparar candidatos antes de fijar GEMINI_MODEL.
+    """
     if not gemini_client.has_api_key():
         return {"ok": False, "reason": "GEMINI_API_KEY no configurada"}
-    async with httpx.AsyncClient(timeout=20.0) as client:
-        model = await gemini_client.resolve_model(client, force=True)
-        if not model:
-            return {"ok": False, "reason": gemini_client.status()["last_error"]}
-        res = await client.post(
-            f"{gemini_client.API_BASE}/models/{model}:generateContent",
-            params={"key": gemini_client.get_api_key()},
-            json={
-                "contents": [{"role": "user", "parts": [{"text": "Responde solo: ok"}]}],
-                "generationConfig": {"maxOutputTokens": 20, "temperature": 0},
-            },
-        )
-        ok = res.status_code == 200
-        if not ok:
-            gemini_client.note_error(f"probe {res.status_code}: {res.text[:200]}")
+
+    started = time.perf_counter()
+    try:
+        async with httpx.AsyncClient(timeout=timeout_s) as client:
+            target = (model or "").strip() or await gemini_client.resolve_model(client, force=True)
+            if not target:
+                return {"ok": False, "reason": gemini_client.status()["last_error"]}
+            res = await client.post(
+                f"{gemini_client.API_BASE}/models/{target}:generateContent",
+                params={"key": gemini_client.get_api_key()},
+                json={
+                    "contents": [{"role": "user", "parts": [{"text": "Responde solo: ok"}]}],
+                    "generationConfig": {"maxOutputTokens": 24, "temperature": 0},
+                },
+            )
+            elapsed = round((time.perf_counter() - started) * 1000)
+            ok = res.status_code == 200
+            if not ok:
+                gemini_client.note_error(f"probe {res.status_code}: {res.text[:200]}")
+            return {
+                "ok": ok,
+                "model": target,
+                "status_code": res.status_code,
+                "elapsed_ms": elapsed,
+                "detail": None if ok else res.text[:200],
+            }
+    except Exception as exc:
+        elapsed = round((time.perf_counter() - started) * 1000)
+        gemini_client.note_error(f"probe: {type(exc).__name__}: {exc}")
         return {
-            "ok": ok,
+            "ok": False,
             "model": model,
-            "status_code": res.status_code,
-            "detail": None if ok else res.text[:200],
+            "elapsed_ms": elapsed,
+            "reason": f"{type(exc).__name__}: {exc}",
         }
