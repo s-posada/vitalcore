@@ -785,6 +785,29 @@ async def _coach_reply(
         return None
 
 
+# Explicación breve y honesta cuando la IA no está disponible, en vez de dejar
+# una respuesta enlatada que parece un chat roto.
+FALLBACK_NOTES = {
+    "quota": "La IA del coach alcanzó su límite de consultas por ahora, así que te respondo con tus datos guardados. ",
+    "saturado": "El modelo de IA está saturado en este momento, te respondo con tus datos guardados. ",
+    "timeout": "La IA está tardando más de lo normal, te respondo con tus datos guardados. ",
+    "sin_clave": "",
+}
+
+
+def _fallback_payload(db: Session, data: "ChatMessage") -> dict:
+    kind = gemini_client.last_error_kind()
+    ctx = _build_user_context(db, data.user_id)
+    return {
+        "reply": FALLBACK_NOTES.get(kind, "") + _fallback_reply(data.message, ctx),
+        "source": "fallback",
+        "reason": kind,
+        "tools_used": [],
+        "tool_labels": [],
+        "data_changed": False,
+    }
+
+
 @app.post("/api/chat/coach")
 async def chat_coach(data: ChatMessage, db: Session = Depends(get_db)):
     """
@@ -813,15 +836,7 @@ async def chat_coach(data: ChatMessage, db: Session = Depends(get_db)):
             "data_changed": result.get("data_changed", False),
         }
 
-    ctx = _build_user_context(db, data.user_id)
-    return {
-        "reply": _fallback_reply(data.message, ctx),
-        "source": "fallback",
-        "tools_used": [],
-        "tool_labels": [],
-        "data_changed": False,
-        "detail": gemini_client.status()["last_error"] if APP_ENV != "production" else None,
-    }
+    return _fallback_payload(db, data)
 
 # ── TRABAJO 02: BÚSQUEDA SEMÁNTICA VECTORIAL & MOTOR MCP ───────────────────────
 
@@ -1015,12 +1030,7 @@ async def ai_agent_chat(data: ChatMessage, db: Session = Depends(get_db)):
             "data_changed": result.get("data_changed", False),
         }
 
-    ctx_simple = _build_user_context(db, data.user_id)
-    return {
-        "reply": _fallback_reply(data.message, ctx_simple),
-        "source": "fallback",
-        "tools_used": [],
-    }
+    return _fallback_payload(db, data)
 
 
 @app.get("/api/ai/diagnostics")

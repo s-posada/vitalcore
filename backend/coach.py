@@ -35,7 +35,10 @@ from mcp_server import (
 MAX_TOOL_ROUNDS = 4
 # El plan gratuito de Render arranca en frío y algunos modelos razonan antes de
 # responder: un margen corto hacía caer el chat al respaldo de reglas.
-REQUEST_TIMEOUT = 55.0
+REQUEST_TIMEOUT = 22.0
+# Nadie espera un minuto por una respuesta de chat: pasado este plazo se
+# responde con las reglas deterministas en vez de seguir reintentando.
+TOTAL_DEADLINE = 38.0
 
 # Herramientas que modifican datos: la UI refresca el dashboard cuando se usan.
 MUTATING_TOOLS = {"update_user_profile", "record_daily_log", "generate_nutrition_plan"}
@@ -216,37 +219,49 @@ async def _post(client: httpx.AsyncClient, model: str, payload: Dict[str, Any]) 
     )
 
 
-# Saturación puntual del modelo o corte de red: reintentar sirve, fallar no.
-RETRY_STATUSES = {429, 500, 502, 503, 504}
+# Saturación puntual del modelo o corte de red: reintentar sirve.
+RETRY_STATUSES = {500, 502, 503, 504}
+# La cuota agotada (429) es del proyecto entero: reintentar sólo hace esperar
+# al usuario para terminar en el mismo error.
+QUOTA_STATUS = 429
 
 
 async def _post_resilient(
-    client: httpx.AsyncClient, model: str, payload: Dict[str, Any]
+    client: httpx.AsyncClient, model: str, payload: Dict[str, Any], deadline: float
 ) -> Tuple[Optional[httpx.Response], str]:
-    """Envía con reintentos y, si el modelo sigue saturado, prueba el siguiente."""
-    delay = 1.2
+    """Envía con reintentos acotados por un plazo total, y prueba otro modelo si hace falta."""
+    delay = 0.8
     res: Optional[httpx.Response] = None
+
     for attempt in range(3):
         try:
             res = await _post(client, model, payload)
         except httpx.HTTPError as exc:
             gemini_client.note_error(f"red: {type(exc).__name__}: {exc}")
             res = None
-        if res is not None and res.status_code not in RETRY_STATUSES:
-            return res, model
-        if attempt < 2:
-            await asyncio.sleep(delay)
-            delay *= 2
 
-    alternative = gemini_client.next_candidate(model)
-    if alternative:
-        try:
-            alt_res = await _post(client, alternative, payload)
-            if alt_res.status_code == 200:
-                return alt_res, alternative
-            res = alt_res
-        except httpx.HTTPError as exc:
-            gemini_client.note_error(f"red (alternativo): {type(exc).__name__}: {exc}")
+        if res is not None:
+            if res.status_code == QUOTA_STATUS:
+                gemini_client.note_error(f"generateContent 429: {res.text[:200]}")
+                return res, model
+            if res.status_code not in RETRY_STATUSES:
+                return res, model
+
+        if attempt == 2 or asyncio.get_event_loop().time() + delay > deadline:
+            break
+        await asyncio.sleep(delay)
+        delay *= 2
+
+    if asyncio.get_event_loop().time() < deadline:
+        alternative = gemini_client.next_candidate(model)
+        if alternative:
+            try:
+                alt_res = await _post(client, alternative, payload)
+                if alt_res.status_code == 200:
+                    return alt_res, alternative
+                res = alt_res
+            except httpx.HTTPError as exc:
+                gemini_client.note_error(f"red (alternativo): {type(exc).__name__}: {exc}")
     return res, model
 
 
@@ -273,6 +288,8 @@ async def run_coach(
     elif contents[-1]["parts"][0].get("text") != message:
         contents.append({"role": "user", "parts": [{"text": message}]})
 
+    deadline = asyncio.get_event_loop().time() + TOTAL_DEADLINE
+
     async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
         model = await gemini_client.resolve_model(client)
         if not model:
@@ -286,7 +303,12 @@ async def run_coach(
         }
 
         for _ in range(MAX_TOOL_ROUNDS):
-            res, model = await _post_resilient(client, model, {**payload_base, "contents": contents})
+            if asyncio.get_event_loop().time() > deadline:
+                gemini_client.note_error("Se agotó el plazo de respuesta del coach.")
+                return None
+            res, model = await _post_resilient(
+                client, model, {**payload_base, "contents": contents}, deadline
+            )
             if res is None:
                 return None
 

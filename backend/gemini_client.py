@@ -178,6 +178,22 @@ def invalidate_model() -> None:
     _state["resolved"] = False
 
 
+def last_error_kind() -> Optional[str]:
+    """Clasifica el último fallo para que la interfaz pueda explicarlo en cristiano."""
+    err = _state["last_error"] or ""
+    if not err:
+        return None
+    if "429" in err or "quota" in err.lower():
+        return "quota"
+    if "Timeout" in err or "timeout" in err:
+        return "timeout"
+    if "503" in err or "UNAVAILABLE" in err:
+        return "saturado"
+    if "no está configurada" in err:
+        return "sin_clave"
+    return "otro"
+
+
 def status() -> Dict[str, Any]:
     """Diagnóstico sin secretos, apto para exponer en un endpoint."""
     return {
@@ -187,5 +203,6 @@ def status() -> Dict[str, Any]:
         "models_available_count": len(_state["available"]),
         "models_available_sample": _state["available"][:12],
         "last_error": _state["last_error"],
+        "last_error_kind": last_error_kind(),
         "resolved": _state["resolved"],
     }
