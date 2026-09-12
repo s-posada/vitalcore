@@ -126,8 +126,9 @@ SYSTEM_PROMPT = (
     "Eres el Coach VitalCore, asistente de salud y nutrición de precisión de la plataforma VitalCore. "
     "Hablas español de Chile, en tono cercano, profesional y basado en evidencia.\n\n"
     "CÓMO TRABAJAS:\n"
-    "- Tienes herramientas conectadas a la base de datos real del usuario. Úsalas, no supongas.\n"
-    "- Antes de hablar de su peso, macros, calorías o progreso, llama a get_user_biometrics.\n"
+    "- Al final de estas instrucciones recibes la ficha con los datos reales del usuario, ya "
+    "consultados en la base: respóndele con esas cifras sin pedir nada.\n"
+    "- Llama a get_user_biometrics sólo si necesitas un dato que no aparezca en la ficha.\n"
     "- Si el usuario informa un dato nuevo sobre sí mismo (peso, meta, altura, actividad), llama a "
     "update_user_profile en el mismo turno. Si cuenta lo que comió, bebió o entrenó hoy, llama a "
     "record_daily_log.\n"
@@ -143,6 +144,41 @@ SYSTEM_PROMPT = (
     "Si preguntan otra cosa, reconduce con amabilidad.\n"
     "- No diagnosticas ni prescribes tratamientos: VitalCore es un apoyo educativo, no un dispositivo médico."
 )
+
+
+def _user_snapshot(db: Session, user_id: int) -> str:
+    """
+    Ficha compacta del usuario para la instrucción de sistema.
+
+    Evita una llamada a la API por cada mensaje: antes el modelo pedía la
+    biometría con una herramienta y recién en la segunda llamada respondía, lo
+    que duplicaba el consumo de la cuota gratuita y la espera del usuario.
+    """
+    data = tool_get_user_biometrics(db, user_id=user_id)
+    if "error" in data:
+        return "No hay datos del usuario en la base todavía."
+
+    profile = data.get("profile", {})
+    plan = data.get("active_plan", {})
+    logs = data.get("recent_logs", [])[:3]
+    resumen = "; ".join(
+        f"{l['date']}: {l.get('calories') or 0} kcal"
+        + (f", {l['weight_kg']} kg" if l.get("weight_kg") else "")
+        + (", entrenó" if l.get("workout_done") else "")
+        for l in logs
+    ) or "sin registros recientes"
+
+    lineas = [
+        "FICHA DEL USUARIO (datos reales, ya consultados en la base):",
+        f"- Nombre: {data.get('name')} | Plan de membresía: {data.get('tier')}",
+        f"- Peso actual: {profile.get('weight_kg')} kg | Peso objetivo: {profile.get('target_weight_kg')} kg",
+        f"- Objetivo: {profile.get('goal')} | Nivel de actividad: {profile.get('activity_level')}",
+        f"- Edad: {profile.get('age')} años | IMC: {profile.get('imc')} | TDEE: {profile.get('tdee')} kcal",
+        f"- Plan nutricional vigente: {plan.get('daily_calories')} kcal, "
+        f"{plan.get('protein_g')}g proteína, {plan.get('carbs_g')}g carbohidratos, {plan.get('fat_g')}g grasas",
+        f"- Últimos registros: {resumen}",
+    ]
+    return "\n".join(lineas)
 
 
 def _tool_payload(db: Session, user_id: int, name: str, args: Dict[str, Any]) -> Dict[str, Any]:
@@ -311,8 +347,10 @@ async def run_coach(
         if not model:
             return None
 
+        snapshot = await asyncio.to_thread(_user_snapshot, db, user_id)
+        instruction = SYSTEM_PROMPT + "\n\n" + snapshot
         payload_base = {
-            "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+            "systemInstruction": {"parts": [{"text": instruction}]},
             "tools": [{"functionDeclarations": TOOL_DECLARATIONS}],
             "toolConfig": {"functionCallingConfig": {"mode": "AUTO"}},
             "generationConfig": _generation_config(model),

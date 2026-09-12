@@ -788,7 +788,7 @@ async def _coach_reply(
 # Explicación breve y honesta cuando la IA no está disponible, en vez de dejar
 # una respuesta enlatada que parece un chat roto.
 FALLBACK_NOTES = {
-    "quota": "La IA del coach alcanzó su límite de consultas por ahora, así que te respondo con tus datos guardados. ",
+    "quota": "Recibí varias consultas muy seguidas y la IA necesita unos segundos. Te respondo con tus datos guardados y puedes reintentar enseguida. ",
     "saturado": "El modelo de IA está saturado en este momento, te respondo con tus datos guardados. ",
     "timeout": "La IA está tardando más de lo normal, te respondo con tus datos guardados. ",
     "sin_clave": "",
