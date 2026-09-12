@@ -219,49 +219,65 @@ async def _post(client: httpx.AsyncClient, model: str, payload: Dict[str, Any]) 
     )
 
 
-# Saturación puntual del modelo o corte de red: reintentar sirve.
+# Saturación puntual o corte de red: reintentar con el mismo modelo sirve.
 RETRY_STATUSES = {500, 502, 503, 504}
-# La cuota agotada (429) es del proyecto entero: reintentar sólo hace esperar
-# al usuario para terminar en el mismo error.
+# Cuota agotada: reintentar el mismo modelo no sirve, pero la cuota gratuita se
+# cuenta por modelo, así que el relevo con el siguiente candidato sí funciona.
 QUOTA_STATUS = 429
+
+
+async def _attempt(
+    client: httpx.AsyncClient, model: str, payload: Dict[str, Any]
+) -> Optional[httpx.Response]:
+    try:
+        return await _post(client, model, payload)
+    except httpx.HTTPError as exc:
+        gemini_client.note_error(f"red: {type(exc).__name__}: {exc}")
+        return None
 
 
 async def _post_resilient(
     client: httpx.AsyncClient, model: str, payload: Dict[str, Any], deadline: float
 ) -> Tuple[Optional[httpx.Response], str]:
-    """Envía con reintentos acotados por un plazo total, y prueba otro modelo si hace falta."""
+    """
+    Pide la respuesta al modelo actual y, si hace falta, la consigue de otro.
+    Reintenta ante fallos temporales y releva de modelo cuando la cuota se agota,
+    todo acotado por el plazo total de la conversación.
+    """
+    loop = asyncio.get_event_loop()
     delay = 0.8
     res: Optional[httpx.Response] = None
 
     for attempt in range(3):
-        try:
-            res = await _post(client, model, payload)
-        except httpx.HTTPError as exc:
-            gemini_client.note_error(f"red: {type(exc).__name__}: {exc}")
-            res = None
+        res = await _attempt(client, model, payload)
 
         if res is not None:
             if res.status_code == QUOTA_STATUS:
-                gemini_client.note_error(f"generateContent 429: {res.text[:200]}")
-                return res, model
+                gemini_client.note_error(f"cuota agotada en {model} (429)")
+                break
             if res.status_code not in RETRY_STATUSES:
                 return res, model
 
-        if attempt == 2 or asyncio.get_event_loop().time() + delay > deadline:
+        if attempt == 2 or loop.time() + delay > deadline:
             break
         await asyncio.sleep(delay)
         delay *= 2
 
-    if asyncio.get_event_loop().time() < deadline:
-        alternative = gemini_client.next_candidate(model)
-        if alternative:
-            try:
-                alt_res = await _post(client, alternative, payload)
-                if alt_res.status_code == 200:
-                    return alt_res, alternative
-                res = alt_res
-            except httpx.HTTPError as exc:
-                gemini_client.note_error(f"red (alternativo): {type(exc).__name__}: {exc}")
+    # Relevo: cada modelo tiene su propia cuota gratuita.
+    for alternative in gemini_client.alternatives(model)[:3]:
+        if loop.time() > deadline:
+            break
+        alt_res = await _attempt(client, alternative, payload)
+        if alt_res is None:
+            continue
+        if alt_res.status_code == 200:
+            gemini_client.set_model(alternative)
+            return alt_res, alternative
+        if alt_res.status_code == QUOTA_STATUS:
+            gemini_client.note_error(f"cuota agotada en {alternative} (429)")
+            continue
+        res = alt_res
+
     return res, model
 
 

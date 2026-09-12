@@ -26,12 +26,18 @@ API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 # `gemini-flash-latest` es un alias que Google mantiene apuntando al flash
 # vigente: no caduca y responde en ~1 s, mientras que los modelos de
 # razonamiento extendido tardan más de un minuto y no sirven para un chat.
+# Medido en producción con la clave del proyecto (plan gratuito):
+#   gemini-flash-lite-latest  ~0,6 s  y la cuota diaria más alta
+#   gemini-3-flash-preview    ~0,7 s
+#   gemini-flash-latest       ~1,3 s  (se agota antes)
+#   gemini-3.6-flash          >30 s   (razona demasiado para un chat)
+# La cuota gratuita es por modelo, así que la lista también sirve de relevo
+# cuando uno responde 429.
 DEFAULT_CANDIDATES: List[str] = [
-    "gemini-flash-latest",
-    "gemini-3-flash-preview",
     "gemini-flash-lite-latest",
-    "gemini-3.6-flash",
-    "gemini-2.5-flash",
+    "gemini-3-flash-preview",
+    "gemini-flash-latest",
+    "gemini-2.5-flash-lite",
 ]
 
 # Modelos que nunca sirven para conversar aunque expongan generateContent.
@@ -154,13 +160,29 @@ def resolve_model_sync(force: bool = False) -> Optional[str]:
         return candidates()[0]
 
 
-def next_candidate(current: Optional[str]) -> Optional[str]:
-    """Siguiente modelo disponible distinto al actual, para sobrevivir a un 503."""
+def alternatives(current: Optional[str]) -> List[str]:
+    """
+    Modelos de relevo, en orden. La cuota gratuita se cuenta por modelo, así que
+    cuando uno responde 429 el siguiente suele funcionar igual de bien.
+    """
     available = _state["available"]
-    for wanted in candidates():
-        if wanted != current and (not available or wanted in available):
-            return wanted
-    return None
+    return [
+        name for name in candidates()
+        if name != current and (not available or name in available)
+    ]
+
+
+def next_candidate(current: Optional[str]) -> Optional[str]:
+    """Primer modelo de relevo, o None si no queda ninguno."""
+    options = alternatives(current)
+    return options[0] if options else None
+
+
+def set_model(name: str) -> None:
+    """Fija el modelo en uso tras un relevo exitoso, para no reintentar el agotado."""
+    if name:
+        _state["model"] = name
+        _state["resolved"] = True
 
 
 def active_model() -> Optional[str]:

@@ -33,6 +33,11 @@ POST /api/ai/diagnostics/probe  # prueba en vivo contra la API de Gemini
 El nombre del modelo no se escribe a mano: se descubre con `ListModels` y se
 cachea por proceso, porque los nombres de modelo se retiran con el tiempo.
 
+La cuota gratuita de Gemini se cuenta por modelo. El backend prefiere
+`gemini-flash-lite-latest`, que es el de mayor cuota diaria y responde en torno a
+medio segundo, y cuando un modelo contesta 429 releva automáticamente al
+siguiente candidato y se queda en el que funciona.
+
 ## Inicio local
 
 Requisitos: Node.js 22+, Python 3.12+ y PowerShell en Windows.

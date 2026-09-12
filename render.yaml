@@ -16,9 +16,10 @@ services:
         generateValue: true
       - key: GEMINI_API_KEY
         sync: false
-      # Vacío = el backend descubre el modelo disponible en la cuenta de Gemini
+      # Cuota gratuita por modelo: los "lite" rinden más consultas al día.
+      # Si se agota, el backend releva solo al siguiente candidato.
       - key: GEMINI_MODEL
-        sync: false
+        value: gemini-flash-lite-latest
       # El agente LangChain agota la memoria del plan free y reinicia el servicio
       - key: ENABLE_LANGCHAIN_AGENT
         value: false
