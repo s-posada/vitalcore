@@ -527,6 +527,18 @@ def log_daily(user_id: int, data: LogCreate, db: Session = Depends(get_db)):
     else:
         log = DailyLog(user_id=user_id, **data.model_dump())
         db.add(log)
+
+    # El peso del día actualiza el perfil y recalcula IMC y TDEE, para que el
+    # dashboard, los datos de origen y el coach muestren siempre lo mismo.
+    profile = db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
+    if data.weight_kg and profile:
+        profile.weight_kg = data.weight_kg
+        profile.imc = calc_imc(profile.weight_kg, profile.height_cm)
+        profile.tdee = calc_tdee(
+            profile.weight_kg, profile.height_cm, profile.age,
+            profile.gender or "other", profile.activity_level or "moderate",
+        )
+
     db.commit()
     return {"success": True, "date": data.date}
 
@@ -562,11 +574,16 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
     for l in logs:
         if l.workout_done or l.meditation_done:
             streak += 1
+        elif not l.calories_consumed:
+            # Registro sin nada declarado (por ejemplo, sólo el peso del día):
+            # no cuenta para la racha, pero tampoco la interrumpe.
+            continue
         else:
             break
 
     target_cal = plan.daily_calories if plan else 2400
-    avg_cal = sum(l.calories_consumed for l in logs[:7]) // max(len(logs[:7]), 1) if logs else 0
+    week = [l for l in logs[:7] if l.calories_consumed]
+    avg_cal = sum(l.calories_consumed for l in week) // len(week) if week else 0
     days_left = calc_days_left(user.subscription_expires_at)
 
     weight_history = [
@@ -598,7 +615,11 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
         "target_fat": plan.fat_g if plan else 65,
         "workouts_this_week": sum(1 for l in logs[:7] if l.workout_done),
         "meditations_this_week": sum(1 for l in logs[:7] if l.meditation_done),
-        "current_weight": logs[0].weight_kg if logs and logs[0].weight_kg else (user.profile.weight_kg if user.profile else 75.0),
+        # El perfil es la fuente de verdad: lo actualizan el onboarding, el chat y
+        # cada registro diario con peso. Antes se leía sólo del último registro y
+        # la tarjeta del dashboard quedaba desfasada del perfil.
+        "current_weight": (user.profile.weight_kg if user.profile and user.profile.weight_kg
+                           else (logs[0].weight_kg if logs and logs[0].weight_kg else None)),
         "weight_progress": weight_history,
         "macro_history": macro_history
     }

@@ -274,6 +274,28 @@ def tool_update_user_profile(
         factor = activity_factors.get(profile.activity_level, 1.55)
         profile.tdee = int(bmr * factor)
 
+    # El dashboard y el gráfico de evolución leen el peso del registro diario.
+    # Sin esto, el chat actualizaba el perfil y la tarjeta seguía mostrando el
+    # peso antiguo, como si no hubiera pasado nada.
+    if weight_kg is not None:
+        today_str = datetime.now(UTC).strftime("%Y-%m-%d")
+        today_log = db.query(DailyLog).filter(
+            DailyLog.user_id == user_id, DailyLog.date == today_str
+        ).first()
+        if today_log:
+            today_log.weight_kg = weight_kg
+        else:
+            db.add(DailyLog(
+                user_id=user_id,
+                date=today_str,
+                calories_consumed=0,
+                weight_kg=weight_kg,
+                workout_done=False,
+                meditation_done=False,
+                water_ml=0,
+                mood=4,
+            ))
+
     db.commit()
     db.refresh(profile)
 
@@ -292,6 +314,12 @@ def tool_update_user_profile(
     }
 
 
+def _sync_profile_weight(db: Session, user_id: int, weight_kg: Optional[float]) -> None:
+    """Lleva el peso del registro diario al perfil, fuente de verdad de IMC y TDEE."""
+    if weight_kg is not None:
+        tool_update_user_profile(db, user_id, weight_kg=weight_kg)
+
+
 def tool_record_daily_log(db: Session, user_id: int, calories_consumed: int, workout_done: bool = False, water_ml: int = 2000, notes: str = "", weight_kg: Optional[float] = None) -> Dict[str, Any]:
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -308,10 +336,6 @@ def tool_record_daily_log(db: Session, user_id: int, calories_consumed: int, wor
     est_carbs = round((calories_consumed * 0.50) / 4.0, 1)
     est_fat = round((calories_consumed * 0.25) / 9.0, 1)
 
-    # Si el usuario menciona su peso, se actualiza también el perfil (fuente de verdad para IMC/TDEE)
-    if weight_kg is not None:
-        tool_update_user_profile(db, user_id, weight_kg=weight_kg)
-
     if existing_log:
         existing_log.calories_consumed = calories_consumed
         existing_log.protein_consumed = est_protein
@@ -322,6 +346,7 @@ def tool_record_daily_log(db: Session, user_id: int, calories_consumed: int, wor
         if weight_kg is not None:
             existing_log.weight_kg = weight_kg
         db.commit()
+        _sync_profile_weight(db, user_id, weight_kg)
         return {"success": True, "action": "updated", "date": today_str, "calories": calories_consumed, "note": "Log actualizado correctamente."}
     else:
         new_log = DailyLog(
@@ -339,6 +364,7 @@ def tool_record_daily_log(db: Session, user_id: int, calories_consumed: int, wor
         )
         db.add(new_log)
         db.commit()
+        _sync_profile_weight(db, user_id, weight_kg)
         return {"success": True, "action": "created", "date": today_str, "calories": calories_consumed, "note": "Log registrado exitosamente en el Dashboard."}
 
 
