@@ -132,3 +132,33 @@ export interface ChatReply {
   data_changed?: boolean
   detail?: string | null
 }
+
+export interface CatalogItem {
+  id: string
+  category: string
+  title: string
+  type: string
+  tags?: string[]
+  description: string
+  calories?: number | null
+  protein_g?: number | null
+  carbs_g?: number | null
+  fat_g?: number | null
+  prep_time_min?: number | null
+  duration_min?: number | null
+  difficulty?: string | null
+}
+
+export interface SemanticMatch {
+  item: CatalogItem
+  score: number
+  relevance_pct: number
+  matched_reason: string
+}
+
+export interface SemanticSearchResponse {
+  query: string
+  category: string
+  total: number
+  results: SemanticMatch[]
+}

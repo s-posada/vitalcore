@@ -1,9 +1,9 @@
 'use client'
 import React, { useState, useEffect, useCallback } from 'react'
 import Navbar from '@/components/Navbar'
-import { Salad, Zap, Loader2, Sparkles, AlertTriangle, Sunrise, Drumstick, Fish, Apple, Coffee, Leaf, Moon, Droplet, Microscope, Check } from 'lucide-react'
+import { Salad, Zap, Loader2, Sparkles, AlertTriangle, Sunrise, Drumstick, Fish, Apple, Coffee, Leaf, Moon, Droplet, Microscope, Check, Search, Flame, Timer, X } from 'lucide-react'
 import { API_BASE_URL as API } from '@/lib/api'
-import type { NutritionPlan, UserProfile, UserSession } from '@/lib/types'
+import type { NutritionPlan, SemanticMatch, SemanticSearchResponse, UserProfile, UserSession } from '@/lib/types'
 
 const MEALS_KEY = 'vc_meals_checked'
 
@@ -28,6 +28,9 @@ export default function NutritionPage() {
   const [checkedMeals, setCheckedMeals] = useState<Record<string, boolean>>({})
   const [toastMsg, setToastMsg] = useState('')
   const [activeGoal, setActiveGoal] = useState('gain_muscle')
+  const [query, setQuery] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [matches, setMatches] = useState<SemanticMatch[] | null>(null)
 
   const showToast = (msg: string) => {
     setToastMsg(msg)
@@ -80,6 +83,31 @@ export default function NutritionPage() {
     window.addEventListener('vitalcore:data-updated', refresh)
     return () => window.removeEventListener('vitalcore:data-updated', refresh)
   }, [loadNutrition])
+
+  // Búsqueda por significado sobre el catálogo de 50 fichas del backend.
+  const handleSearch = async (text: string) => {
+    const clean = text.trim()
+    if (!clean) return
+    setSearching(true)
+    try {
+      const res = await fetch(
+        `${API}/api/search/semantic?q=${encodeURIComponent(clean)}&category=nutricion&top_k=6`
+      )
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json() as SemanticSearchResponse
+      setMatches(data.results || [])
+    } catch {
+      setMatches([])
+      showToast('Error al buscar en el catálogo de alimentos')
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  const clearSearch = () => {
+    setQuery('')
+    setMatches(null)
+  }
 
   const handleGeneratePlan = async () => {
     if (!user) return
@@ -199,6 +227,100 @@ export default function NutritionPage() {
                 <div className="text-[10px] text-slate-500 mt-1">{m.hint}</div>
               </div>
             ))
+          )}
+        </div>
+
+        {/* Buscador semántico de alimentos */}
+        <div className="card space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Search className="w-4 h-4 text-primary-600" /> Buscador de alimentos y recetas
+              </h3>
+              <p className="text-xs text-slate-500">
+                Describe lo que buscas en tus palabras: el motor semántico encuentra las fichas afines.
+              </p>
+            </div>
+          </div>
+
+          <form
+            onSubmit={(e) => { e.preventDefault(); handleSearch(query) }}
+            className="flex items-center gap-2"
+          >
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Ej: desayuno alto en proteína sin gluten"
+                aria-label="Buscar alimentos y recetas"
+                className="input-dark text-sm py-2.5 pl-9 pr-9"
+                maxLength={120}
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  aria-label="Limpiar búsqueda"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={searching || !query.trim()}
+              className="btn-primary py-2.5 px-4 text-xs font-bold disabled:opacity-40 whitespace-nowrap"
+            >
+              {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Buscar'}
+            </button>
+          </form>
+
+          <div className="flex flex-wrap gap-1.5">
+            {['alto en proteína', 'cena ligera', 'sin gluten', 'snack post entreno', 'rico en fibra'].map((sug) => (
+              <button
+                key={sug}
+                onClick={() => { setQuery(sug); handleSearch(sug) }}
+                className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 hover:border-primary-300 hover:text-primary-700 transition-colors"
+              >
+                {sug}
+              </button>
+            ))}
+          </div>
+
+          {matches !== null && (
+            matches.length === 0 ? (
+              <p className="text-sm text-slate-500 border border-dashed border-slate-200 rounded-2xl p-4 text-center">
+                No encontramos fichas para esa búsqueda. Prueba con otras palabras.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {matches.map((m) => (
+                  <article key={m.item.id} className="border border-slate-200 rounded-2xl p-3.5 bg-slate-50/60 hover:border-primary-200 transition-colors">
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <h4 className="text-sm font-bold text-slate-900 leading-snug">{m.item.title}</h4>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-primary-50 text-primary-700 border border-primary-200 whitespace-nowrap">
+                        {m.relevance_pct}% afín
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed">{m.item.description}</p>
+                    <div className="flex flex-wrap items-center gap-2 mt-2.5 text-[11px] text-slate-500">
+                      <span className="font-semibold text-slate-700">{m.item.type}</span>
+                      {!!m.item.calories && <span className="inline-flex items-center gap-1"><Flame className="w-3 h-3" /> {m.item.calories} kcal</span>}
+                      {!!m.item.protein_g && <span className="inline-flex items-center gap-1"><Drumstick className="w-3 h-3" /> {m.item.protein_g}g proteína</span>}
+                      {!!m.item.prep_time_min && <span className="inline-flex items-center gap-1"><Timer className="w-3 h-3" /> {m.item.prep_time_min} min</span>}
+                    </div>
+                    {m.matched_reason && (
+                      <p className="text-[11px] text-primary-700 mt-2 flex items-start gap-1.5">
+                        <Sparkles className="w-3 h-3 mt-0.5 shrink-0" /> {m.matched_reason}
+                      </p>
+                    )}
+                  </article>
+                ))}
+              </div>
+            )
           )}
         </div>
 
