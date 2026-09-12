@@ -289,6 +289,8 @@ export default function ChatCoach() {
               className="flex items-end gap-2 p-3 border-t border-slate-200 bg-white shrink-0"
             >
               <textarea
+                id="chat-coach-input"
+                data-testid="chat-coach-input"
                 ref={inputRef}
                 rows={1}
                 value={input}
@@ -307,6 +309,8 @@ export default function ChatCoach() {
                 maxLength={400}
               />
               <button
+                id="chat-coach-submit-btn"
+                data-testid="chat-coach-submit-btn"
                 type="submit"
                 disabled={sending || !input.trim()}
                 className="w-10 h-10 rounded-2xl bg-primary-600 hover:bg-primary-700 disabled:opacity-40 disabled:hover:bg-primary-600 text-white flex items-center justify-center transition-colors shrink-0"
@@ -320,6 +324,8 @@ export default function ChatCoach() {
 
         {/* Lanzador */}
         <button
+          id="chat-coach-launcher"
+          data-testid="chat-coach-launcher"
           onClick={() => setOpen((v) => !v)}
           className={`pointer-events-auto mr-4 mb-4 sm:mr-0 sm:mb-0 self-end w-14 h-14 rounded-2xl bg-primary-600 hover:bg-primary-700 text-white shadow-xl shadow-primary-600/25 flex items-center justify-center transition-all hover:scale-105 active:scale-95 ${open ? 'hidden sm:flex' : 'flex'}`}
           aria-label={open ? 'Cerrar coach virtual' : 'Abrir coach virtual'}
