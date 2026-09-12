@@ -128,7 +128,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/90 border-b border-slate-200 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
         {/* Logo */}
         <Link href="/dashboard" className="flex items-center gap-2.5 group shrink-0">
           <img
@@ -249,6 +249,40 @@ export default function Navbar() {
           )}
         </div>
       </div>
+
+      {/* Navegación móvil: sin ella el header dejaba a los teléfonos sin forma de cambiar de sección */}
+      <nav className="md:hidden flex items-center gap-1.5 px-3 pb-2.5 pt-0.5 overflow-x-auto border-t border-slate-100">
+        {navLinks.map((l) => {
+          const active = pathname === l.href
+          const Icon = l.icon
+          return (
+            <Link
+              key={l.href}
+              href={l.href}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
+                active
+                  ? 'bg-primary-50 text-primary-700 border-primary-200'
+                  : 'bg-slate-50 text-slate-500 border-slate-200'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {l.label}
+            </Link>
+          )
+        })}
+        {user?.is_admin && (
+          <Link
+            href="/admin"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap border ${
+              pathname === '/admin'
+                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                : 'bg-slate-50 text-amber-600/90 border-slate-200'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" /> Admin
+          </Link>
+        )}
+      </nav>
     </header>
   )
 }

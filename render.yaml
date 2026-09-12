@@ -16,6 +16,12 @@ services:
         generateValue: true
       - key: GEMINI_API_KEY
         sync: false
+      # Vacío = el backend descubre el modelo disponible en la cuenta de Gemini
+      - key: GEMINI_MODEL
+        sync: false
+      # El agente LangChain agota la memoria del plan free y reinicia el servicio
+      - key: ENABLE_LANGCHAIN_AGENT
+        value: false
       # URL del frontend en Vercel — se completa al crear el Blueprint (evita CORS abierto a "*")
       - key: ALLOWED_ORIGINS
         value: http://localhost:3000,http://localhost:3100

@@ -12,3 +12,4 @@ aiofiles==24.1.0
 langchain==0.3.30
 langchain-google-genai==2.0.5
 sse-starlette==3.0.3
+psycopg[binary]==3.2.3

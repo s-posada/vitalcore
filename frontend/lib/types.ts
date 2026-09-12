@@ -38,6 +38,9 @@ export interface UserSession {
 
 export interface DashboardStats {
   streak_days: number
+  days_left?: number
+  subscription_tier?: PlanTier
+  subscription_price_usd?: number
   target_calories: number
   avg_weekly_calories: number
   current_weight: number
@@ -47,6 +50,20 @@ export interface DashboardStats {
   target_carbs: number
   target_fat: number
   weight_progress: Array<{ date: string; weight: number }>
+  macro_history?: Array<{ date: string; protein: number; carbs: number; fat: number; calories: number }>
+}
+
+export interface DailyLog {
+  date: string
+  calories_consumed: number
+  protein_consumed: number
+  carbs_consumed: number
+  fat_consumed: number
+  weight_kg: number | null
+  workout_done: boolean
+  meditation_done: boolean
+  water_ml: number
+  mood: number
 }
 
 export interface NutritionDay {
@@ -103,4 +120,14 @@ export interface AdminMetrics {
   total_daily_logs: number
   total_rsvps: number
   active_rate_pct: number
+}
+
+export interface ChatReply {
+  reply: string
+  source: 'gemini' | 'fallback' | 'ratelimit' | 'langchain_agent' | string
+  model?: string | null
+  tools_used?: string[]
+  tool_labels?: string[]
+  data_changed?: boolean
+  detail?: string | null
 }

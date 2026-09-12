@@ -4,8 +4,27 @@ from datetime import datetime, timedelta, UTC
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE_URL = "sqlite:////app/data/vitalcore.db" if os.path.exists("/app/data") else f"sqlite:///{os.path.join(BASE_DIR, 'vitalcore.db')}"
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+
+# DATABASE_URL permite apuntar a una base administrada (PostgreSQL) en despliegue.
+# Sin ella se usa SQLite local, que en Render vive en un disco efímero: los datos
+# que el usuario guarde se pierden en cada reinicio o despliegue del servicio.
+_default_sqlite = (
+    "sqlite:////app/data/vitalcore.db" if os.path.exists("/app/data")
+    else f"sqlite:///{os.path.join(BASE_DIR, 'vitalcore.db')}"
+)
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip() or _default_sqlite
+# Render entrega la URL con el esquema antiguo que SQLAlchemy 2 ya no reconoce.
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
+
+IS_SQLITE = DATABASE_URL.startswith("sqlite")
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False} if IS_SQLITE else {},
+    pool_pre_ping=not IS_SQLITE,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

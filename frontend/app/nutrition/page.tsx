@@ -1,18 +1,57 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import Navbar from '@/components/Navbar'
 import { Salad, Zap, Loader2, Sparkles, AlertTriangle, Sunrise, Drumstick, Fish, Apple, Coffee, Leaf, Moon, Droplet, Microscope, Check } from 'lucide-react'
 import { API_BASE_URL as API } from '@/lib/api'
 import type { NutritionPlan, UserProfile, UserSession } from '@/lib/types'
 
+const MEALS_KEY = 'vc_meals_checked'
+
+const GOAL_HINTS: Record<string, string> = {
+  gain_muscle: 'Superávit controlado',
+  lose_fat: 'Déficit calórico',
+  maintain: 'Mantenimiento',
+  improve_endurance: 'Soporte de resistencia',
+  improve_flexibility: 'Mantenimiento',
+}
+
+function Skeleton({ className = '' }: { className?: string }) {
+  return <div className={`animate-pulse rounded-xl bg-slate-200/70 ${className}`} />
+}
+
 export default function NutritionPage() {
   const [user, setUser] = useState<UserSession | null>(null)
   const [plan, setPlan] = useState<NutritionPlan | null>(null)
-  const [selectedDay, setSelectedDay] = useState(1)
+  const [loading, setLoading] = useState(true)
+  const [selectedDay, setSelectedDay] = useState(new Date().getDate() > 30 ? 30 : new Date().getDate())
   const [generating, setGenerating] = useState(false)
   const [checkedMeals, setCheckedMeals] = useState<Record<string, boolean>>({})
   const [toastMsg, setToastMsg] = useState('')
   const [activeGoal, setActiveGoal] = useState('gain_muscle')
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg)
+    setTimeout(() => setToastMsg(''), 3500)
+  }
+
+  const loadNutrition = useCallback(async (userId: number) => {
+    try {
+      const res = await fetch(`${API}/api/nutrition/${userId}`)
+      if (res.ok) {
+        const data = await res.json() as NutritionPlan
+        setPlan(data)
+        // El objetivo local (datos de origen) tiene prioridad sobre el del plan guardado
+        let hasLocalGoal = false
+        try { hasLocalGoal = !!JSON.parse(localStorage.getItem('vc_profile') || 'null')?.primary_goal } catch {}
+        if (!hasLocalGoal) setActiveGoal(data.goal || 'gain_muscle')
+      }
+    } catch (error) {
+      console.error(error)
+      showToast('Error al cargar tu plan nutricional')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     const stored = localStorage.getItem('vc_user')
@@ -30,29 +69,17 @@ export default function NutritionPage() {
         if (p?.primary_goal) setActiveGoal(p.primary_goal)
       }
     } catch {}
-    loadNutrition(currentUser.id)
-  }, [])
-
-  const showToast = (msg: string) => {
-    setToastMsg(msg)
-    setTimeout(() => setToastMsg(''), 3500)
-  }
-
-  const loadNutrition = async (userId: number) => {
     try {
-      const res = await fetch(`${API}/api/nutrition/${userId}`)
-      if (res.ok) {
-        const data = await res.json() as NutritionPlan
-        setPlan(data)
-        // El objetivo local (datos de origen) tiene prioridad sobre el del plan guardado
-        let hasLocalGoal = false
-        try { hasLocalGoal = !!JSON.parse(localStorage.getItem('vc_profile') || 'null')?.primary_goal } catch {}
-        if (!hasLocalGoal) setActiveGoal(data.goal || 'gain_muscle')
-      }
-    } catch (error) {
-      console.error(error)
-    }
-  }
+      const savedMeals = localStorage.getItem(MEALS_KEY)
+      if (savedMeals) setCheckedMeals(JSON.parse(savedMeals))
+    } catch {}
+    loadNutrition(currentUser.id)
+
+    // El coach del chat puede recalcular el plan: la página se actualiza sola.
+    const refresh = () => loadNutrition(currentUser.id)
+    window.addEventListener('vitalcore:data-updated', refresh)
+    return () => window.removeEventListener('vitalcore:data-updated', refresh)
+  }, [loadNutrition])
 
   const handleGeneratePlan = async () => {
     if (!user) return
@@ -80,8 +107,14 @@ export default function NutritionPage() {
   }
 
   const toggleMeal = (mealKey: string) => {
-    setCheckedMeals(prev => ({ ...prev, [mealKey]: !prev[mealKey] }))
+    setCheckedMeals((prev) => {
+      const next = { ...prev, [mealKey]: !prev[mealKey] }
+      try { localStorage.setItem(MEALS_KEY, JSON.stringify(next)) } catch {}
+      return next
+    })
   }
+
+  const completedToday = ['b', 'l', 'd', 's'].filter((k) => checkedMeals[`d${selectedDay}_${k}`]).length
 
   const currentDayData = plan?.days?.find((d) => d.day === selectedDay) || plan?.days?.[0]
 
@@ -143,44 +176,37 @@ export default function NutritionPage() {
 
         {/* Macro Targets Banner */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="card text-center">
-            <div className="text-xs text-slate-500 font-semibold mb-1">CALORÍAS DIARIAS</div>
-            <div className="text-2xl sm:text-3xl font-black text-slate-900">
-              {plan?.daily_calories || 2450} <span className="text-xs text-slate-400 font-normal">kcal</span>
-            </div>
-            <div className="text-[10px] text-primary-700 mt-1">Superávit controlado</div>
-          </div>
-
-          <div className="card text-center">
-            <div className="text-xs text-sky-700 font-semibold mb-1">PROTEÍNA</div>
-            <div className="text-2xl sm:text-3xl font-black text-sky-700">
-              {plan?.protein_g || 170} <span className="text-xs text-slate-400 font-normal">g / día</span>
-            </div>
-            <div className="text-[10px] text-slate-500 mt-1">~2.2g por kg de peso</div>
-          </div>
-
-          <div className="card text-center">
-            <div className="text-xs text-amber-600 font-semibold mb-1">CARBOHIDRATOS</div>
-            <div className="text-2xl sm:text-3xl font-black text-amber-600">
-              {plan?.carbs_g || 260} <span className="text-xs text-slate-400 font-normal">g / día</span>
-            </div>
-            <div className="text-[10px] text-slate-500 mt-1">Energía glucolítica</div>
-          </div>
-
-          <div className="card text-center">
-            <div className="text-xs text-red-600 font-semibold mb-1">GRASAS SALUDABLES</div>
-            <div className="text-2xl sm:text-3xl font-black text-red-600">
-              {plan?.fat_g || 65} <span className="text-xs text-slate-400 font-normal">g / día</span>
-            </div>
-            <div className="text-[10px] text-slate-500 mt-1">Salud hormonal & celular</div>
-          </div>
+          {loading ? (
+            [0, 1, 2, 3].map((i) => (
+              <div key={i} className="card text-center space-y-2">
+                <Skeleton className="h-3 w-24 mx-auto" />
+                <Skeleton className="h-8 w-20 mx-auto" />
+                <Skeleton className="h-3 w-16 mx-auto" />
+              </div>
+            ))
+          ) : (
+            [
+              { label: 'CALORÍAS DIARIAS', value: plan?.daily_calories, unit: 'kcal', tone: 'text-slate-900', hint: GOAL_HINTS[plan?.goal || ''] || 'Objetivo calórico' },
+              { label: 'PROTEÍNA', value: plan?.protein_g, unit: 'g / día', tone: 'text-sky-700', hint: 'Síntesis proteica muscular' },
+              { label: 'CARBOHIDRATOS', value: plan?.carbs_g, unit: 'g / día', tone: 'text-amber-600', hint: 'Energía glucolítica' },
+              { label: 'GRASAS SALUDABLES', value: plan?.fat_g, unit: 'g / día', tone: 'text-red-600', hint: 'Salud hormonal y celular' },
+            ].map((m) => (
+              <div key={m.label} className="card text-center">
+                <div className={`text-xs font-semibold mb-1 ${m.tone === 'text-slate-900' ? 'text-slate-500' : m.tone}`}>{m.label}</div>
+                <div className={`text-2xl sm:text-3xl font-black ${m.tone}`}>
+                  {m.value ?? '—'} <span className="text-xs text-slate-400 font-normal">{m.unit}</span>
+                </div>
+                <div className="text-[10px] text-slate-500 mt-1">{m.hint}</div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* 30-Day Selector Strip */}
         <div className="card p-4 space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-2">
             <span>SELECCIONA EL DÍA DEL MES (1 AL 30)</span>
-            <span className="text-primary-700">Día {selectedDay} seleccionado</span>
+            <span className="text-primary-700">Día {selectedDay} · {completedToday}/4 comidas marcadas</span>
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">

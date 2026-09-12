@@ -9,8 +9,29 @@ Prototipo académico full-stack de bienestar integral. Combina planes de nutrici
 - `frontend/`: Next.js 16, React 19, TypeScript y Tailwind CSS.
 - `backend/`: FastAPI, SQLAlchemy y SQLite.
 - `backend/semantic_engine.py`: búsqueda semántica con embeddings y respaldo local determinista.
-- `backend/agent.py`: agente LangChain con herramientas de dominio.
+- `backend/coach.py`: coach del chat sobre la API REST de Gemini con function calling real.
+- `backend/gemini_client.py`: descubrimiento y caché del modelo de Gemini disponible.
+- `backend/agent.py`: agente LangChain con herramientas de dominio (`ENABLE_LANGCHAIN_AGENT=true`).
 - `backend/mcp_server.py`: exposición de herramientas mediante MCP/SSE.
+
+## El coach del chat
+
+El chat de la aplicación (`POST /api/chat/coach`) conversa con Gemini y puede
+ejecutar cinco herramientas sobre la base de datos: leer biometría, actualizar el
+perfil, registrar el día, generar el plan nutricional y buscar en el catálogo
+semántico. Cuando una herramienta escribe, la respuesta incluye `data_changed` y
+la interfaz refresca el dashboard.
+
+Sin `GEMINI_API_KEY` el chat sigue respondiendo con reglas deterministas sobre los
+datos reales del usuario. Para saber en qué modo está un despliegue:
+
+```
+GET  /api/ai/diagnostics        # clave presente, modelo en uso y último error
+POST /api/ai/diagnostics/probe  # prueba en vivo contra la API de Gemini
+```
+
+El nombre del modelo no se escribe a mano: se descubre con `ListModels` y se
+cachea por proceso, porque los nombres de modelo se retiran con el tiempo.
 
 ## Inicio local
 

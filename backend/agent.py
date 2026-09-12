@@ -12,7 +12,6 @@ SOLO desde engine_registry, database, mcp_server y librerías estándar.
 NUNCA importa desde main.py para evitar ciclos de importación.
 """
 
-import os
 import json
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
@@ -21,9 +20,16 @@ from database import User, UserProfile, NutritionPlan, DailyLog
 from engine_registry import get_engine
 from mcp_server import tool_get_user_biometrics, tool_record_daily_log, tool_update_user_profile
 
-# Configuración autónoma desde el entorno
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+# Configuración autónoma desde el entorno.
+# El nombre del modelo se descubre contra la API (los nombres fijos se retiran
+# con el tiempo y provocaban errores 404 silenciosos).
+import gemini_client
+
+GEMINI_API_KEY = gemini_client.get_api_key()
+
+
+def _model() -> str:
+    return gemini_client.resolve_model_sync() or gemini_client.candidates()[0]
 
 
 def generate_nutrition_plan_for_user(db: Session, user_id: int) -> Dict[str, Any]:
@@ -63,7 +69,7 @@ def generate_nutrition_plan_for_user(db: Session, user_id: int) -> Dict[str, Any
         try:
             import google.generativeai as genai
             genai.configure(api_key=GEMINI_API_KEY)
-            model = genai.GenerativeModel(GEMINI_MODEL)
+            model = genai.GenerativeModel(_model())
             prompt = (
                 f"Eres el nutricionista jefe de VitalCore. Diseña un menú diario adaptado a un usuario con:\n"
                 f"- Peso: {weight} kg\n"
@@ -206,7 +212,7 @@ def run_agent(db: Session, user_id: int, message: str) -> Dict[str, Any]:
 
     try:
         llm = ChatGoogleGenerativeAI(
-            model=GEMINI_MODEL,
+            model=_model(),
             google_api_key=GEMINI_API_KEY,
             temperature=0.2
         )

@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { Salad, Dumbbell, Activity, ShieldCheck, BarChart3, Gem, ArrowRight, Star, Sparkles, TrendingUp, HeartPulse, Cpu, Users } from 'lucide-react'
+import { Salad, Activity, ShieldCheck, BarChart3, Gem, ArrowRight, Star, Sparkles, TrendingUp, HeartPulse, Cpu, Users } from 'lucide-react'
 import { avatarUrl } from '@/lib/avatar'
 
 const HERO_IMAGE = 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1600&q=80'

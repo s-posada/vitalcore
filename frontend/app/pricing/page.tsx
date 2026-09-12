@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 import Navbar from '@/components/Navbar'
 import {
   Gem, Star, Crown, Check, PartyPopper, AlertTriangle, Salad, Dumbbell,
-  BarChart3, Users, Ticket, Droplet, Sparkles, Bot, Mic, Leaf, Timer,
+  BarChart3, Droplet, Sparkles, Bot, Leaf, Timer,
   Rocket, Dna, Zap, Award, TrendingUp
 } from 'lucide-react'
 import { API_BASE_URL as API } from '@/lib/api'
