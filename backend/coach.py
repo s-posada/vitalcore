@@ -214,6 +214,40 @@ async def _post(client: httpx.AsyncClient, model: str, payload: Dict[str, Any]) 
     )
 
 
+# Saturación puntual del modelo o corte de red: reintentar sirve, fallar no.
+RETRY_STATUSES = {429, 500, 502, 503, 504}
+
+
+async def _post_resilient(
+    client: httpx.AsyncClient, model: str, payload: Dict[str, Any]
+) -> Tuple[Optional[httpx.Response], str]:
+    """Envía con reintentos y, si el modelo sigue saturado, prueba el siguiente."""
+    delay = 1.2
+    res: Optional[httpx.Response] = None
+    for attempt in range(3):
+        try:
+            res = await _post(client, model, payload)
+        except httpx.HTTPError as exc:
+            gemini_client.note_error(f"red: {type(exc).__name__}: {exc}")
+            res = None
+        if res is not None and res.status_code not in RETRY_STATUSES:
+            return res, model
+        if attempt < 2:
+            await asyncio.sleep(delay)
+            delay *= 2
+
+    alternative = gemini_client.next_candidate(model)
+    if alternative:
+        try:
+            alt_res = await _post(client, alternative, payload)
+            if alt_res.status_code == 200:
+                return alt_res, alternative
+            res = alt_res
+        except httpx.HTTPError as exc:
+            gemini_client.note_error(f"red (alternativo): {type(exc).__name__}: {exc}")
+    return res, model
+
+
 async def run_coach(
     db: Session,
     user_id: int,
@@ -250,7 +284,9 @@ async def run_coach(
         }
 
         for _ in range(MAX_TOOL_ROUNDS):
-            res = await _post(client, model, {**payload_base, "contents": contents})
+            res, model = await _post_resilient(client, model, {**payload_base, "contents": contents})
+            if res is None:
+                return None
 
             if res.status_code == 404:
                 # El modelo cacheado dejó de existir: se vuelve a descubrir una vez.

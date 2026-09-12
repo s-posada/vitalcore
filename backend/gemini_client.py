@@ -154,6 +154,15 @@ def resolve_model_sync(force: bool = False) -> Optional[str]:
         return candidates()[0]
 
 
+def next_candidate(current: Optional[str]) -> Optional[str]:
+    """Siguiente modelo disponible distinto al actual, para sobrevivir a un 503."""
+    available = _state["available"]
+    for wanted in candidates():
+        if wanted != current and (not available or wanted in available):
+            return wanted
+    return None
+
+
 def active_model() -> Optional[str]:
     """Modelo ya resuelto, sin llamadas de red."""
     return _state["model"]
