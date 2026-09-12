@@ -23,12 +23,15 @@ import httpx
 API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 
 # Orden de preferencia. El primero disponible en la cuenta es el que se usa.
+# `gemini-flash-latest` es un alias que Google mantiene apuntando al flash
+# vigente: no caduca y responde en ~1 s, mientras que los modelos de
+# razonamiento extendido tardan más de un minuto y no sirven para un chat.
 DEFAULT_CANDIDATES: List[str] = [
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
     "gemini-flash-latest",
-    "gemini-2.5-flash-lite",
-    "gemini-2.0-flash-lite",
+    "gemini-3-flash-preview",
+    "gemini-flash-lite-latest",
+    "gemini-3.6-flash",
+    "gemini-2.5-flash",
 ]
 
 # Modelos que nunca sirven para conversar aunque expongan generateContent.
