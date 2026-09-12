@@ -44,6 +44,15 @@ const TEAM_AVATARS: Record<string, string> = {
   'yenny': '/team/yenny.png',
   'yenny sanchez aguilar': '/team/yenny.png',
   'yesanchez2026@udec.cl': '/team/yenny.png',
+
+  // Prof. Martin Mellado
+  'martin': '/team/martin.png',
+  'martín': '/team/martin.png',
+  'martin mellado': '/team/martin.png',
+  'martín mellado': '/team/martin.png',
+  'prof. martin mellado': '/team/martin.png',
+  'prof. martín mellado': '/team/martin.png',
+  'mellado': '/team/martin.png',
 }
 
 /**

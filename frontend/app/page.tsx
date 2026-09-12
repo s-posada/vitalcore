@@ -200,9 +200,10 @@ export default function LandingPage() {
           {/* Financiador / Investor Highlight Banner */}
           <div className="p-8 rounded-3xl border border-amber-200 bg-gradient-to-r from-amber-50 via-white to-amber-50 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center gap-6">
             <img
-              src={avatarUrl('Martin Mellado', 'male')}
+              src="/team/martin.png"
               alt="Prof. Martín Mellado"
-              className="w-20 h-20 rounded-2xl object-cover border border-amber-200"
+              className="w-20 h-20 rounded-2xl object-cover border border-amber-200 shadow-sm"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = avatarUrl('Martin Mellado', 'male') }}
             />
             <div className="space-y-1 text-center md:text-left flex-1">
               <div className="text-xs font-bold uppercase tracking-widest text-amber-600">Financiador principal & mentor estratégico</div>
