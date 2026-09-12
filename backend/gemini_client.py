@@ -34,6 +34,7 @@ API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 # La cuota gratuita es por modelo, así que la lista también sirve de relevo
 # cuando uno responde 429.
 DEFAULT_CANDIDATES: List[str] = [
+    "gemini-3.1-flash-lite",
     "gemini-flash-lite-latest",
     "gemini-3-flash-preview",
     "gemini-flash-latest",
