@@ -119,6 +119,7 @@ export interface AdminMetrics {
   total_posts: number
   total_daily_logs: number
   total_rsvps: number
+  active_users_7d?: number
   active_rate_pct: number
 }
 

@@ -137,20 +137,20 @@ export default function AdminPage() {
           <div className="card border-primary-200">
             <div className="text-xs text-primary-700 font-semibold mb-1">MRR ESTIMADO (MENSUAL)</div>
             <div className="text-3xl font-black text-slate-900">
-              ${metrics?.mrr_usd?.toLocaleString('en-US') || '285'} <span className="text-xs text-slate-400 font-normal">USD/mes</span>
+              ${metrics?.mrr_usd?.toLocaleString('en-US') ?? '—'} <span className="text-xs text-slate-400 font-normal">USD/mes</span>
             </div>
             <div className="text-[10px] text-slate-500 mt-2">
-              ARR Anualizado: <span className="text-slate-900 font-bold">${metrics?.arr_usd?.toLocaleString('en-US') || '3,420'} USD</span>
+              ARR Anualizado: <span className="text-slate-900 font-bold">${metrics?.arr_usd?.toLocaleString('en-US') ?? '—'} USD</span>
             </div>
           </div>
 
           <div className="card">
             <div className="text-xs text-sky-700 font-semibold mb-1">TOTAL USUARIOS REGISTRADOS</div>
             <div className="text-3xl font-black text-slate-900">
-              {metrics?.total_users || usersList.length} <span className="text-xs text-slate-400 font-normal">atletas</span>
+              {metrics?.total_users ?? usersList.length} <span className="text-xs text-slate-400 font-normal">atletas</span>
             </div>
             <div className="text-[10px] text-slate-500 mt-2">
-              Tasa de actividad: <span className="text-emerald-700 font-bold">{metrics?.active_rate_pct || 92.5}%</span>
+              Con registro esta semana: <span className="text-emerald-700 font-bold">{metrics?.active_rate_pct ?? '—'}%</span>
             </div>
           </div>
 
@@ -158,13 +158,13 @@ export default function AdminPage() {
             <div className="text-xs text-amber-700 font-semibold mb-1">DISTRIBUCIÓN DE PLANES</div>
             <div className="flex items-center gap-2 mt-2 text-xs font-bold">
               <span className="px-2 py-1 rounded bg-emerald-50 border border-emerald-200 text-emerald-700">
-                {metrics?.tier_counts?.inicial || 2} Inicial ($25)
+                {metrics?.tier_counts?.inicial ?? 0} Inicial ($25)
               </span>
               <span className="px-2 py-1 rounded bg-sky-50 border border-sky-200 text-sky-700">
-                {metrics?.tier_counts?.premium || 3} Prem ($35)
+                {metrics?.tier_counts?.premium ?? 0} Prem ($35)
               </span>
               <span className="px-2 py-1 rounded bg-amber-50 border border-amber-200 text-amber-700">
-                {metrics?.tier_counts?.pro || 3} Pro ($50)
+                {metrics?.tier_counts?.pro ?? 0} Pro ($50)
               </span>
             </div>
           </div>
@@ -172,10 +172,10 @@ export default function AdminPage() {
           <div className="card">
             <div className="text-xs text-sky-700 font-semibold mb-1">INTERACCIONES & LOGS</div>
             <div className="text-3xl font-black text-slate-900">
-              {metrics?.total_daily_logs || 56} <span className="text-xs text-slate-400 font-normal">logs</span>
+              {metrics?.total_daily_logs ?? 0} <span className="text-xs text-slate-400 font-normal">logs</span>
             </div>
             <div className="text-[10px] text-slate-500 mt-2">
-              {metrics?.total_posts || 12} posts • {metrics?.total_rsvps || 18} reservas en eventos
+              {metrics?.total_posts ?? 0} publicaciones • {metrics?.total_rsvps ?? 0} reservas
             </div>
           </div>
         </div>

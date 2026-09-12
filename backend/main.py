@@ -660,6 +660,16 @@ def admin_get_metrics(_: User = Depends(require_admin), db: Session = Depends(ge
     mrr = (inicial_users * 25) + (premium_users * 35) + (pro_users * 50)
     arr = mrr * 12
 
+    # Tasa de actividad real: usuarios con al menos un registro en los últimos 7 días.
+    since = (datetime.now(UTC) - timedelta(days=7)).strftime("%Y-%m-%d")
+    active_users = (
+        db.query(DailyLog.user_id)
+        .filter(DailyLog.date >= since)
+        .distinct()
+        .count()
+    )
+    active_rate = round((active_users / total_users) * 100, 1) if total_users else 0.0
+
     return {
         "total_users": total_users,
         "tier_counts": {
@@ -672,7 +682,8 @@ def admin_get_metrics(_: User = Depends(require_admin), db: Session = Depends(ge
         "total_posts": total_posts,
         "total_daily_logs": total_logs,
         "total_rsvps": total_rsvps,
-        "active_rate_pct": 92.5
+        "active_users_7d": active_users,
+        "active_rate_pct": active_rate,
     }
 
 # ── CHAT / COACH VIRTUAL ─────────────────────────────────────────────────────
